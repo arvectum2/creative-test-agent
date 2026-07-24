@@ -97,15 +97,32 @@ jobs:
           set -o pipefail
           python -m scripts.check_security_posture 2>&1 | tee .ci/security-posture.log
 
-      - name: Run test suite
+      - name: Run regression test suite
         shell: bash
         run: |
-          if ! python -m pytest tests/ -q >.ci/pytest.log 2>&1; then
+          if ! python -m pytest tests/ -q \
+            --ignore=tests/test_pre_tz_messy_demo.py \
+            >.ci/pytest.log 2>&1; then
             echo "pytest failed. Last 250 log lines:"
             tail -n 250 .ci/pytest.log
             exit 1
           fi
           cat .ci/pytest.log
+
+      - name: Run CTA-PRE-012 executable test
+        shell: bash
+        run: |
+          timeout 120s python -m pytest tests/test_pre_tz_messy_demo.py -q -s \
+            2>&1 | tee .ci/cta-pre-012-test.log
+
+      - name: Verify CTA-PRE-012 CLI
+        shell: bash
+        run: |
+          timeout 120s python scripts/run_pre_tz_messy_demo.py \
+            --workspace .ci/cta-pre-012-demo \
+            --respondent-count 12 \
+            2>&1 | tee .ci/cta-pre-012-demo.log
+          test -f .ci/cta-pre-012-demo/demo_manifest.json
 
       - name: Upload CI diagnostics
         if: failure()
