@@ -44,6 +44,7 @@ from src.modules.clarifications.router import router as clarifications_router
 from src.modules.prediction_readiness.router import router as prediction_readiness_router
 from src.modules.quantitative_surveys.router import router as quantitative_surveys_router
 from src.modules.data_review_reports.router import router as data_review_reports_router
+from src.modules.client_one_page_reports.router import router as client_one_page_reports_router
 from src.shared.api.errors import register_exception_handlers
 from src.shared.config.settings import get_settings
 from src.shared.db.session import check_db_connection, get_database_url, init_db
@@ -167,6 +168,7 @@ app.include_router(clarifications_router)
 app.include_router(prediction_readiness_router)
 app.include_router(quantitative_surveys_router)
 app.include_router(data_review_reports_router)
+app.include_router(client_one_page_reports_router)
 app.include_router(security_router)
 app.include_router(demo_router)
 

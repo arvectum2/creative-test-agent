@@ -147,6 +147,19 @@ jobs:
           test -f .ci/pre-pilot-004-intake/relationship_hints.csv
           test -f .ci/pre-pilot-004-intake/package_manifest.json
 
+      - name: Verify PRE-PILOT-005 provisional one-page client report
+        shell: bash
+        run: |
+          python scripts/client_one_page_report.py self-test \
+            --output .ci/pre-pilot-005-one-page
+          python scripts/client_one_page_report.py validate \
+            --input .ci/pre-pilot-005-one-page
+          python scripts/client_one_page_report.py check-determinism
+          test -f .ci/pre-pilot-005-one-page/client_one_page_report.pptx
+          test -f .ci/pre-pilot-005-one-page/client_one_page_report.html
+          test -f .ci/pre-pilot-005-one-page/client_one_page_report_evidence.json
+          test -f .ci/pre-pilot-005-one-page/report_manifest.json
+
       - name: Run CTA-PRE-012 executable test
         shell: bash
         run: |
