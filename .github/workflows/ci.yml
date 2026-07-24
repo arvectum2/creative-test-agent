@@ -121,6 +121,18 @@ jobs:
           test -f .ci/synthetic-creative-golden-pack/contact_sheet.png
           test -f .ci/synthetic-creative-golden-pack/generated_manifest.json
 
+      - name: Verify PRE-PILOT-003 local vision benchmark harness
+        shell: bash
+        run: |
+          python scripts/benchmark_local_vision.py self-test \
+            --output .ci/pre-pilot-003-self-test
+          python scripts/benchmark_local_vision.py validate \
+            --input .ci/pre-pilot-003-self-test
+          test -f .ci/pre-pilot-003-self-test/benchmark_results.json
+          test -f .ci/pre-pilot-003-self-test/benchmark_summary.csv
+          test -f .ci/pre-pilot-003-self-test/benchmark_report.md
+          test -f .ci/pre-pilot-003-self-test/benchmark_manifest.json
+
       - name: Run CTA-PRE-012 executable test
         shell: bash
         run: |
