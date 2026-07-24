@@ -109,6 +109,18 @@ jobs:
           fi
           cat .ci/pytest.log
 
+      - name: Verify PRE-PILOT-002 synthetic creative golden pack
+        shell: bash
+        run: |
+          python scripts/synthetic_creative_golden_pack.py validate
+          python scripts/synthetic_creative_golden_pack.py generate \
+            --output .ci/synthetic-creative-golden-pack
+          python scripts/synthetic_creative_golden_pack.py validate \
+            --output .ci/synthetic-creative-golden-pack
+          python scripts/synthetic_creative_golden_pack.py check-determinism
+          test -f .ci/synthetic-creative-golden-pack/contact_sheet.png
+          test -f .ci/synthetic-creative-golden-pack/generated_manifest.json
+
       - name: Run CTA-PRE-012 executable test
         shell: bash
         run: |
