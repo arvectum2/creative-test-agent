@@ -3,9 +3,15 @@ from fastapi.responses import JSONResponse
 
 from src.shared.config.settings import get_settings
 from src.shared.security.auth import get_current_user_from_request
-from src.shared.security.session import decode_session_token
+from src.shared.security.login import (
+    check_login_rate_limit,
+    clear_login_failures,
+    delete_session_cookie,
+    record_login_failure,
+    set_session_cookie,
+)
 
-from .schemas import LoginRequest, LoginResponse, MeResponse
+from .schemas import LoginRequest
 from .service import login
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -17,27 +23,30 @@ def auth_login(body: LoginRequest, request: Request):
     if not settings.enable_auth:
         return {"message": "Auth is disabled in local/demo mode", "auth_enabled": False}
 
+    allowed, retry_after = check_login_rate_limit(request, body.email)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many login attempts",
+            headers={"Retry-After": str(retry_after)},
+        )
+
     try:
         result = login(body.email, body.password)
-    except ValueError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+    except ValueError:
+        record_login_failure(request, body.email)
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
+    clear_login_failures(request, body.email)
     response = JSONResponse(content=result)
-    response.set_cookie(
-        key=settings.session_cookie_name,
-        value=result["token"],
-        httponly=True,
-        max_age=settings.session_ttl_hours * 3600,
-        samesite="lax",
-    )
+    set_session_cookie(response, result["token"])
     return response
 
 
 @router.post("/logout")
-def auth_logout(request: Request):
-    settings = get_settings()
+def auth_logout():
     response = JSONResponse(content={"message": "Logged out"})
-    response.delete_cookie(key=settings.session_cookie_name)
+    delete_session_cookie(response)
     return response
 
 

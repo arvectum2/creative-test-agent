@@ -6,14 +6,17 @@ from src.modules.data_review_reports.schemas import (
     DataReviewReportResponse,
     GenerateDataReviewReportRequest,
 )
+from src.modules.data_review_reports.secure_download import (
+    secure_data_review_report_path,
+)
 from src.modules.data_review_reports.service import (
-    data_review_report_path,
     generate_data_review_report,
     get_data_review_report,
     get_latest_data_review_report,
 )
 from src.shared.errors import AppError
 from src.shared.security.auth import get_current_user_from_request
+from src.shared.security.hardening import safe_download_name
 
 router = APIRouter(tags=["data-review-reports"])
 
@@ -80,9 +83,10 @@ def get_report(report_id: str):
 
 @router.get("/data-review-reports/{report_id}/download")
 def download_report(report_id: str):
-    path, filename = data_review_report_path(report_id)
+    path, filename = secure_data_review_report_path(report_id)
     return FileResponse(
         path=path,
-        filename=filename,
+        filename=safe_download_name(filename, "data-review.xlsx"),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
     )

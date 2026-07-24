@@ -22,6 +22,7 @@ from src.modules.import_sessions.service import (
 )
 from src.shared.errors import AppError
 from src.shared.security.auth import get_current_user_from_request
+from src.shared.security.hardening import safe_download_name
 
 router = APIRouter(prefix="/import-sessions", tags=["import-sessions"])
 
@@ -117,7 +118,7 @@ def download_import_source_file(import_session_id: str, file_id: str):
     path, source = get_source_file_download(import_session_id, file_id)
     return FileResponse(
         str(path),
-        filename=source.original_filename,
+        filename=safe_download_name(source.original_filename, "source-file.bin"),
         media_type="application/octet-stream",
         headers={
             "Cache-Control": "no-store",

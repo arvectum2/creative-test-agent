@@ -68,6 +68,15 @@ def _write_audit_log(event_type: str, detail: str) -> None:
         pass
 
 
+def _directory_has_files(path: str) -> bool:
+    if not os.path.isdir(path):
+        return False
+    for _root, _dirs, files in os.walk(path):
+        if files:
+            return True
+    return False
+
+
 def create_backup(output_path: str | None = None) -> str:
     from src.shared.config.settings import get_settings
 
@@ -90,6 +99,8 @@ def create_backup(output_path: str | None = None) -> str:
 
     storage_root = os.path.abspath(settings.storage_root)
     exports_root = os.path.abspath(settings.exports_root)
+    include_storage = settings.backup_include_uploads and _directory_has_files(storage_root)
+    include_exports = settings.backup_include_exports and _directory_has_files(exports_root)
 
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -97,8 +108,8 @@ def create_backup(output_path: str | None = None) -> str:
         "database_url_type": "sqlite",
         "included": {
             "database": db_path is not None,
-            "storage": settings.backup_include_uploads and os.path.isdir(storage_root),
-            "exports": settings.backup_include_exports and os.path.isdir(exports_root),
+            "storage": include_storage,
+            "exports": include_exports,
         },
         "counts": get_entity_counts(),
     }

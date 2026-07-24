@@ -1,7 +1,10 @@
 import logging
 import sys
+from pathlib import Path
 
 from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from src.modules.agent_registry.router import router as agent_registry_router
 from src.modules.audit_log.router import router as audit_log_router
@@ -20,6 +23,10 @@ from src.modules.knowledge_base.router import router as knowledge_base_router
 from src.modules.export_jobs.router import router as export_jobs_router
 from src.modules.admin.router import router as admin_router
 from src.modules.auth.router import router as auth_router
+from src.modules.auth.ui_router import (
+    remove_legacy_ui_auth_routes,
+    router as auth_ui_router,
+)
 from src.modules.model_profiles.router import router as model_profiles_router
 from src.modules.prompt_registry.router import router as prompt_registry_router
 from src.modules.evaluations.router import router as evaluations_router
@@ -41,6 +48,19 @@ from src.shared.api.errors import register_exception_handlers
 from src.shared.config.settings import get_settings
 from src.shared.db.session import check_db_connection, get_database_url, init_db
 from src.shared.llm.router import router as llm_router
+from src.shared.security.config import (
+    security_fail_closed,
+    security_headers_enabled,
+    security_max_request_bytes,
+)
+from src.shared.security.hardening import validate_security_posture
+from src.shared.security.middleware import (
+    BrowserOriginGuardMiddleware,
+    LocalOnlyRequestMiddleware,
+    RequestBodyLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
+from src.shared.security.router import router as security_router
 from src.shared.vision.router import router as vision_router
 
 from src.modules.projects.history import get_project_history
@@ -50,29 +70,66 @@ settings = get_settings()
 app = FastAPI(title=settings.app_name)
 register_exception_handlers(app)
 
+trusted_hosts = list(settings.trusted_hosts_list)
+if settings.env == "local":
+    trusted_hosts.extend(["test", "testserver"])
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=sorted(set(trusted_hosts or ["localhost", "127.0.0.1"])),
+)
+if settings.cors_origins_list:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins_list,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["Accept", "Content-Type", "X-Requested-With"],
+    )
+app.add_middleware(LocalOnlyRequestMiddleware)
+app.add_middleware(BrowserOriginGuardMiddleware)
+app.add_middleware(RequestBodyLimitMiddleware, max_bytes=security_max_request_bytes())
+if security_headers_enabled():
+    app.add_middleware(SecurityHeadersMiddleware)
+
 
 @app.on_event("startup")
 def on_startup():
     _setup_logging()
+    _prepare_local_directories()
+    posture = validate_security_posture()
+    if security_fail_closed() and posture.blocking_errors:
+        details = "; ".join(f"{item.key}: {item.message}" for item in posture.blocking_errors)
+        raise RuntimeError(f"Security posture blocked startup: {details}")
     init_db()
 
 
+def _prepare_local_directories():
+    for raw in (settings.storage_root, settings.exports_root, settings.backup_root):
+        Path(raw).expanduser().mkdir(parents=True, exist_ok=True)
+    if settings.database_url.startswith("sqlite:///"):
+        database_path = Path(settings.database_url.removeprefix("sqlite:///"))
+        if database_path.parent != Path(""):
+            database_path.parent.mkdir(parents=True, exist_ok=True)
+
+
 def _setup_logging():
-    settings = get_settings()
-    level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    current = get_settings()
+    level = getattr(logging, current.log_level.upper(), logging.INFO)
     handlers = [logging.StreamHandler(sys.stdout)]
-    if settings.log_file:
-        handlers.append(logging.FileHandler(settings.log_file))
+    if current.log_file:
+        handlers.append(logging.FileHandler(current.log_file))
     logging.basicConfig(
         level=level,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=handlers,
     )
-    if settings.log_format == "plain":
+    if current.log_format == "plain":
         logging.getLogger().handlers[0].setFormatter(
             logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
         )
 
+
+remove_legacy_ui_auth_routes(ui_router)
 
 app.include_router(agent_registry_router)
 app.include_router(creative_assets_router)
@@ -82,6 +139,7 @@ app.include_router(test_rubrics_router)
 app.include_router(test_runs_router)
 app.include_router(report_generator_router)
 app.include_router(audit_log_router)
+app.include_router(auth_ui_router)
 app.include_router(ui_router)
 app.include_router(llm_router)
 app.include_router(vision_router, prefix="/vision")
@@ -109,17 +167,18 @@ app.include_router(clarifications_router)
 app.include_router(prediction_readiness_router)
 app.include_router(quantitative_surveys_router)
 app.include_router(data_review_reports_router)
+app.include_router(security_router)
 app.include_router(demo_router)
 
 
 @app.middleware("http")
 async def auth_write_middleware(request, call_next):
-    settings = get_settings()
-    if settings.enable_auth and request.method in ("POST", "PUT", "PATCH", "DELETE"):
+    current = get_settings()
+    if current.enable_auth and request.method in ("POST", "PUT", "PATCH", "DELETE"):
         path = request.url.path
         if path == "/":
             pass
-        elif path.startswith(("/auth/login", "/auth/logout", "/ui/login")):
+        elif path.startswith(("/auth/login", "/auth/logout", "/ui/login", "/ui/logout")):
             pass
         else:
             from src.shared.security.auth import get_current_user_from_request
@@ -132,10 +191,10 @@ async def auth_write_middleware(request, call_next):
                         status_code=403,
                         content={"detail": f"Role '{role}' does not have write permission"},
                     )
-            except Exception as e:
+            except Exception as exc:
                 from fastapi.responses import JSONResponse
-                status = getattr(e, "status_code", 401)
-                detail = getattr(e, "detail", str(e)) if hasattr(e, "detail") else str(e)
+                status = getattr(exc, "status_code", 401)
+                detail = getattr(exc, "detail", "Not authenticated")
                 return JSONResponse(status_code=status, content={"detail": detail})
     return await call_next(request)
 
@@ -152,10 +211,12 @@ def health_db():
 
 @app.get("/health")
 def health():
+    posture = validate_security_posture()
     return {
-        "status": "ok",
+        "status": "ok" if not posture.blocking_errors else "error",
         "app": settings.app_name,
         "local_only_mode": settings.local_only_mode,
+        "security_posture": posture.status,
     }
 
 
