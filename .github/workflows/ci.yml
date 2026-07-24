@@ -133,6 +133,20 @@ jobs:
           test -f .ci/pre-pilot-003-self-test/benchmark_report.md
           test -f .ci/pre-pilot-003-self-test/benchmark_manifest.json
 
+      - name: Verify PRE-PILOT-004 pilot intake package
+        shell: bash
+        run: |
+          python scripts/pilot_intake_package.py generate \
+            --output .ci/pre-pilot-004-intake
+          python scripts/pilot_intake_package.py validate \
+            --input .ci/pre-pilot-004-intake
+          python scripts/pilot_intake_package.py check-determinism
+          test -f .ci/pre-pilot-004-intake/client_intake_manifest.json
+          test -f .ci/pre-pilot-004-intake/pilot_acceptance_plan.json
+          test -f .ci/pre-pilot-004-intake/file_register.csv
+          test -f .ci/pre-pilot-004-intake/relationship_hints.csv
+          test -f .ci/pre-pilot-004-intake/package_manifest.json
+
       - name: Run CTA-PRE-012 executable test
         shell: bash
         run: |
