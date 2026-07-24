@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     llm_timeout_seconds: int = 60
     storage_root: str = "./data/storage"
     max_upload_size_mb: int = 25
+    import_max_upload_size_mb: int = 250
     allowed_upload_types: str = "txt,md,pdf,png,jpg,jpeg,webp"
 
     vision_provider: str = "stub"
