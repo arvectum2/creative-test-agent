@@ -97,6 +97,9 @@ jobs:
           set -o pipefail
           python -m scripts.check_security_posture 2>&1 | tee .ci/security-posture.log
 
+      - name: Verify PRE-PILOT-006 backup recovery unit tests
+        run: python -m pytest tests/test_backup_recovery_integrity.py -q -s
+
       - name: Run regression test suite
         shell: bash
         run: |
@@ -159,6 +162,24 @@ jobs:
           test -f .ci/pre-pilot-005-one-page/client_one_page_report.html
           test -f .ci/pre-pilot-005-one-page/client_one_page_report_evidence.json
           test -f .ci/pre-pilot-005-one-page/report_manifest.json
+
+      - name: Verify PRE-PILOT-006 operator and recovery rehearsal
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 240s python scripts/operator_recovery_rehearsal.py run \
+            --workspace .ci/pre-pilot-006-rehearsal \
+            --respondent-count 12 \
+            2>&1 | tee .ci/pre-pilot-006-rehearsal.log
+          python scripts/operator_recovery_rehearsal.py validate \
+            --input .ci/pre-pilot-006-rehearsal
+          python scripts/check_backup.py \
+            .ci/pre-pilot-006-rehearsal/backups/pre_pilot_006_primary.zip
+          test -f .ci/pre-pilot-006-rehearsal/rehearsal_manifest.json
+          test -f .ci/pre-pilot-006-rehearsal/evidence_manifest.json
+          test -f .ci/pre-pilot-006-rehearsal/evidence/operator_checklist.json
+          test -f .ci/pre-pilot-006-rehearsal/evidence/automated_rehearsal_report.md
+          test "$(find .ci/pre-pilot-006-rehearsal/backups -name 'pre_restore_*.zip' | wc -l)" -eq 1
 
       - name: Run CTA-PRE-012 executable test
         shell: bash

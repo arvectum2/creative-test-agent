@@ -150,8 +150,21 @@ def validate_security_posture(settings: Settings | None = None) -> SecurityPostu
 
 
 def ensure_within_root(path: str | Path, root: str | Path) -> Path:
-    candidate = Path(path).expanduser().resolve(strict=False)
+    """Resolve a stored path while keeping it inside ``root``.
+
+    Absolute paths are checked as supplied. Relative paths are storage-relative
+    identifiers and are resolved from the configured root, never from the
+    process working directory. Resolving after the join also rejects ``..`` and
+    symlink escapes.
+    """
+
     root_path = Path(root).expanduser().resolve(strict=False)
+    raw_path = Path(path).expanduser()
+    candidate = (
+        raw_path.resolve(strict=False)
+        if raw_path.is_absolute()
+        else (root_path / raw_path).resolve(strict=False)
+    )
     try:
         candidate.relative_to(root_path)
     except ValueError as exc:

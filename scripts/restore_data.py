@@ -1,135 +1,209 @@
 #!/usr/bin/env python3
-"""
-Restore creative-test-agent data from a backup zip.
+"""Restore Creative Test Agent data from a validated local backup.
 
 Usage:
-    python scripts/restore_data.py data/backups/cta_backup_YYYYMMDD_HHMMSS.zip [--force]
+    python scripts/restore_data.py <backup.zip> [--force] [--skip-pre-restore-backup]
 
-Creates a pre-restore backup automatically.
-Refuses to restore if the app appears to be running, unless --force is passed.
+The default path is fail-safe: validation and a pre-restore backup must succeed
+before any current workspace file is replaced.
 """
 
+from __future__ import annotations
+
+import argparse
+import http.client
 import json
 import os
 import shutil
 import sys
 import tempfile
-import zipfile
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from scripts.backup_common import (
+    DATABASE_ARCNAME,
+    load_backup_manifest,
+    safe_extract_backup,
+    validate_backup,
+    verify_restored_payload,
+)
 
 
-def _detect_app_running() -> bool:
+def _detect_app_running(port: int = 8000) -> bool:
     try:
-        import http.client
-        conn = http.client.HTTPConnection("localhost", 8000, timeout=3)
-        conn.request("GET", "/health")
-        resp = conn.getresponse()
-        conn.close()
-        return resp.status == 200
+        connection = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+        connection.request("GET", "/health")
+        response = connection.getresponse()
+        connection.close()
+        return response.status == 200
     except Exception:
         return False
 
 
-def restore_backup(backup_path: str, force: bool = False) -> None:
+def _sqlite_path(database_url: str) -> Path | None:
+    if not database_url.startswith("sqlite:///"):
+        return None
+    raw = database_url.removeprefix("sqlite:///")
+    if not raw or raw == ":memory:":
+        return None
+    return Path(raw).expanduser().resolve()
+
+
+def _replace_file(source: Path, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    staged = target.with_name(f".{target.name}.restore-{uuid.uuid4().hex}")
+    try:
+        shutil.copy2(source, staged)
+        os.replace(staged, target)
+    finally:
+        staged.unlink(missing_ok=True)
+
+
+def _replace_directory(source: Path, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    staged = target.parent / f".{target.name}.restore-{uuid.uuid4().hex}"
+    previous = target.parent / f".{target.name}.previous-{uuid.uuid4().hex}"
+    shutil.copytree(source, staged)
+    moved_previous = False
+    try:
+        if target.exists():
+            os.replace(target, previous)
+            moved_previous = True
+        os.replace(staged, target)
+        if moved_previous:
+            shutil.rmtree(previous, ignore_errors=True)
+    except Exception:
+        if target.exists() and not moved_previous:
+            shutil.rmtree(target, ignore_errors=True)
+        if moved_previous and previous.exists() and not target.exists():
+            os.replace(previous, target)
+        raise
+    finally:
+        shutil.rmtree(staged, ignore_errors=True)
+        if previous.exists() and target.exists():
+            shutil.rmtree(previous, ignore_errors=True)
+
+
+def restore_backup(
+    backup_path: str,
+    force: bool = False,
+    *,
+    create_pre_restore_backup: bool = True,
+) -> dict:
     from src.shared.config.settings import get_settings
+    from src.shared.db.session import close_db
 
     settings = get_settings()
-
-    if not os.path.isfile(backup_path):
-        print(f"Backup file not found: {backup_path}", file=sys.stderr)
-        sys.exit(1)
-
-    if not force and _detect_app_running():
-        print(
-            "ERROR: App appears to be running on localhost:8000. "
-            "Stop the app first or use --force.",
-            file=sys.stderr,
+    source_archive = Path(backup_path).expanduser().resolve()
+    errors = validate_backup(source_archive)
+    if errors:
+        raise RuntimeError("Backup validation failed: " + "; ".join(errors))
+    if not force and _detect_app_running(settings.port):
+        raise RuntimeError(
+            f"App appears to be running on 127.0.0.1:{settings.port}; stop it first or use --force"
         )
-        sys.exit(1)
 
-    # Verify backup structure
-    with zipfile.ZipFile(backup_path, "r") as zf:
-        names = zf.namelist()
-        if "manifest.json" not in names:
-            print("ERROR: Backup is missing manifest.json", file=sys.stderr)
-            sys.exit(1)
-        for name in names:
-            if name.startswith(".env") or "/.env" in name:
-                print(f"ERROR: Backup contains .env file: {name}", file=sys.stderr)
-                sys.exit(1)
-            if ".." in name or name.startswith("/"):
-                print(f"ERROR: Backup contains path traversal: {name}", file=sys.stderr)
-                sys.exit(1)
+    database_path = _sqlite_path(settings.database_url)
+    if database_path is None:
+        raise RuntimeError("Restore currently supports a persistent SQLite database only")
+    storage_root = Path(settings.storage_root).expanduser().resolve()
+    exports_root = Path(settings.exports_root).expanduser().resolve()
+    backup_root = Path(settings.backup_root).expanduser().resolve()
+    backup_root.mkdir(parents=True, exist_ok=True)
 
-        manifest = json.loads(zf.read("manifest.json"))
-        print(f"Restoring backup from: {os.path.basename(backup_path)}")
-        print(f"  Created: {manifest.get('created_at', 'unknown')}")
-        print(f"  Entities: {json.dumps(manifest.get('counts', {}), default=str)}")
-
-    # Create pre-restore backup
-    print("Creating pre-restore backup...")
-    try:
+    manifest = load_backup_manifest(source_archive)
+    close_db()
+    pre_restore_path: str | None = None
+    if create_pre_restore_backup:
         from scripts.backup_data import create_backup
-        backup_root = os.path.abspath(settings.backup_root)
-        os.makedirs(backup_root, exist_ok=True)
-        pre_restore_path = os.path.join(
-            backup_root,
-            f"pre_restore_{os.path.basename(backup_path)}",
+
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+        pre_restore = backup_root / f"pre_restore_{timestamp}_{source_archive.name}"
+        try:
+            pre_restore_path = create_backup(str(pre_restore))
+        except Exception as exc:
+            raise RuntimeError(f"Pre-restore backup failed; restore aborted: {exc}") from exc
+
+    restored = {"database": False, "storage": False, "exports": False}
+    with tempfile.TemporaryDirectory(prefix="cta-restore-") as tmpdir_value:
+        extracted = Path(tmpdir_value)
+        safe_extract_backup(source_archive, extracted)
+        included = manifest.get("included", {})
+        if included.get("database"):
+            _replace_file(extracted / DATABASE_ARCNAME, database_path)
+            restored["database"] = True
+        if included.get("storage"):
+            _replace_directory(extracted / "storage", storage_root)
+            restored["storage"] = True
+        if included.get("exports"):
+            _replace_directory(extracted / "exports", exports_root)
+            restored["exports"] = True
+
+    verification_errors = verify_restored_payload(
+        manifest,
+        database_path=database_path,
+        storage_root=storage_root,
+        exports_root=exports_root,
+    )
+    if verification_errors:
+        raise RuntimeError("Restored workspace failed verification: " + "; ".join(verification_errors))
+
+    result = {
+        "status": "completed",
+        "restored_at": datetime.now(timezone.utc).isoformat(),
+        "backup_path": str(source_archive),
+        "backup_id": manifest.get("backup_id"),
+        "format_version": manifest.get("format_version"),
+        "pre_restore_backup_path": pre_restore_path,
+        "restored": restored,
+        "verified": True,
+        "verification_errors": [],
+        "same_configured_paths_required": True,
+    }
+    print(f"Restored backup: {source_archive.name}")
+    print(f"  Database: {'restored' if restored['database'] else 'not included'}")
+    print(f"  Storage: {'restored' if restored['storage'] else 'not included'}")
+    print(f"  Exports: {'restored' if restored['exports'] else 'not included'}")
+    print(f"  Pre-restore backup: {pre_restore_path or 'explicitly skipped'}")
+    print("  Integrity verification: PASS")
+    return result
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Restore a verified Creative Test Agent backup")
+    parser.add_argument("backup", help="Path to the backup ZIP")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Proceed even when the local health endpoint appears to be running",
+    )
+    parser.add_argument(
+        "--skip-pre-restore-backup",
+        action="store_true",
+        help="Emergency-only: restore without first backing up the current workspace",
+    )
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    try:
+        result = restore_backup(
+            args.backup,
+            args.force,
+            create_pre_restore_backup=not args.skip_pre_restore_backup,
         )
-        create_backup(pre_restore_path)
-    except Exception as e:
-        print(f"Warning: Could not create pre-restore backup: {e}")
-
-    # Extract backup
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with zipfile.ZipFile(backup_path, "r") as zf:
-            zf.extractall(tmpdir)
-
-        # Restore database
-        db_url = settings.database_url
-        if db_url.startswith("sqlite:///"):
-            db_path = os.path.abspath(db_url.replace("sqlite:///", ""))
-            backup_db = os.path.join(tmpdir, "creative_test_agent.db")
-            if os.path.isfile(backup_db):
-                os.makedirs(os.path.dirname(db_path), exist_ok=True)
-                shutil.copy2(backup_db, db_path)
-                print(f"  Database restored: {db_path}")
-            else:
-                print("  Warning: No database file in backup")
-
-        # Restore storage
-        backup_storage = os.path.join(tmpdir, "storage")
-        if os.path.isdir(backup_storage):
-            storage_root = os.path.abspath(settings.storage_root)
-            shutil.rmtree(storage_root, ignore_errors=True)
-            shutil.copytree(backup_storage, storage_root, dirs_exist_ok=True)
-            print(f"  Storage restored: {storage_root}")
-        else:
-            print("  No storage folder in backup")
-
-        # Restore exports
-        backup_exports = os.path.join(tmpdir, "exports")
-        if os.path.isdir(backup_exports):
-            exports_root = os.path.abspath(settings.exports_root)
-            shutil.rmtree(exports_root, ignore_errors=True)
-            shutil.copytree(backup_exports, exports_root, dirs_exist_ok=True)
-            print(f"  Exports restored: {exports_root}")
-        else:
-            print("  No exports folder in backup")
-
-    print("Restore completed.")
-
-
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python scripts/restore_data.py <backup.zip> [--force]", file=sys.stderr)
-        sys.exit(1)
-
-    backup_path = sys.argv[1]
-    force = "--force" in sys.argv
-    restore_backup(backup_path, force)
+    except Exception as exc:
+        print(f"Restore failed: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

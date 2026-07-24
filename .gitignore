@@ -8,6 +8,7 @@ data/storage/
 data/exports/
 data/backups/
 data/generated/
+data/rehearsals/
 data/release/smoke_*
 data/release/*.zip
 data/*.db
