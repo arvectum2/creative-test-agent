@@ -7,6 +7,7 @@ __pycache__/
 data/storage/
 data/exports/
 data/backups/
+data/generated/
 data/release/smoke_*
 data/release/*.zip
 data/*.db
