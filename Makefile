@@ -1,10 +1,19 @@
 PYTHON = .venv/bin/python
 UVICORN = .venv/bin/uvicorn
 
-.PHONY: test run seed-demo reset-demo export-pilot check-closed-loop check-demo pilot-check load-demo-profile build-client-pack client-pilot-check check-server docker-build docker-up docker-down docker-logs bootstrap-admin server-build server-up server-down server-logs server-shell server-check server-bootstrap-admin server-backup server-restore migrations-check migrations-upgrade register-prompts eval-stub eval-local check-local-model release-manifest release-check release-bundle verify-release-install pilot-smoke
+.PHONY: test ci-check run seed-demo reset-demo export-pilot check-closed-loop check-demo pilot-check load-demo-profile build-client-pack client-pilot-check check-server docker-build docker-up docker-down docker-logs bootstrap-admin server-build server-up server-down server-logs server-shell server-check server-bootstrap-admin server-backup server-restore migrations-check migrations-upgrade register-prompts eval-stub eval-local check-local-model release-manifest release-check release-bundle verify-release-install pilot-smoke
 
 test:
 	$(PYTHON) -m pytest tests/ -v
+
+ci-check:
+	$(PYTHON) -m compileall -q src scripts
+	$(PYTHON) scripts/check_model_registry.py
+	$(PYTHON) scripts/run_migrations.py
+	$(PYTHON) scripts/check_migrations.py
+	$(PYTHON) -m pytest tests/ -q
+	$(PYTHON) scripts/check_closed_loop.py
+	$(PYTHON) scripts/check_demo_readiness.py
 
 run:
 	$(UVICORN) src.main:app --reload

@@ -6,7 +6,8 @@ from sqlalchemy import create_engine, pool
 from src.shared.config.settings import get_settings
 from src.shared.db.base import Base
 
-# Ensure all models are registered with Base.metadata
+# Ensure all models are registered with Base.metadata. Keep this list aligned
+# with src.shared.db.session.init_db; scripts/check_model_registry.py enforces it.
 import src.modules.audit_log.models  # noqa: F401
 import src.modules.audience_profiles.models  # noqa: F401
 import src.modules.brand_profiles.models  # noqa: F401
@@ -14,10 +15,19 @@ import src.modules.creative_assets.models  # noqa: F401
 import src.modules.report_generator.models  # noqa: F401
 import src.modules.test_rubrics.models  # noqa: F401
 import src.modules.test_runs.models  # noqa: F401
+import src.modules.users.models  # noqa: F401
+import src.modules.clients.models  # noqa: F401
+import src.modules.projects.models  # noqa: F401
+import src.modules.brandbooks.models  # noqa: F401
+import src.modules.knowledge_base.models  # noqa: F401
+import src.modules.export_jobs.models  # noqa: F401
 import src.modules.model_profiles.models  # noqa: F401
 import src.modules.prompt_registry.models  # noqa: F401
 import src.modules.evaluations.models  # noqa: F401
 import src.modules.prompt_traces.models  # noqa: F401
+import src.modules.reviews.models  # noqa: F401
+import src.modules.job_queue.models  # noqa: F401
+import src.modules.batches.models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

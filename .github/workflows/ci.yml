@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    name: Baseline verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      CTA_DATABASE_URL: sqlite:///./.ci/creative_test_agent.db
+      CTA_LOCAL_ONLY_MODE: "true"
+      CTA_ALLOW_CLOUD_LLM: "false"
+      CTA_LLM_PROVIDER: stub
+      CTA_VISION_PROVIDER: stub
+      CTA_ENABLE_AUTH: "false"
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install project and test dependencies
+        run: |
+          python -m pip install --upgrade pip --quiet
+          python -m pip install -e ".[dev]" --quiet
+
+      - name: Prepare isolated CI state
+        run: |
+          rm -rf .ci
+          mkdir -p .ci
+
+      - name: Compile Python sources
+        run: python -m compileall -q src scripts
+
+      - name: Verify SQLAlchemy model registry
+        run: python scripts/check_model_registry.py
+
+      - name: Apply and verify Alembic migrations
+        run: |
+          python scripts/run_migrations.py
+          python scripts/check_migrations.py
+
+      - name: Run test suite
+        shell: bash
+        run: |
+          if ! python -m pytest tests/ -q >.ci/pytest.log 2>&1; then
+            echo "pytest failed. Last 250 log lines:"
+            tail -n 250 .ci/pytest.log
+            exit 1
+          fi
+          cat .ci/pytest.log
+
+      - name: Upload pytest diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-diagnostics
+          path: .ci/pytest.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Verify closed-loop defaults
+        run: python scripts/check_closed_loop.py
+
+      - name: Verify demo readiness
+        run: python scripts/check_demo_readiness.py

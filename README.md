@@ -267,22 +267,27 @@ make eval-local   # smoke test with ollama-local
 
 ## Advanced Exports
 
-Export job foundation with DOCX/PPTX stubs. See [docs/advanced_exports.md](docs/advanced_exports.md) for full documentation.
+The export subsystem generates real DOCX and PPTX files locally, plus print-ready HTML for PDF output. Legacy `docx_stub` and `pptx_stub` endpoints remain only for backward compatibility. See [docs/advanced_report_exports.md](docs/advanced_report_exports.md) for the canonical implementation details.
 
 ```text
 GET  /exports
 GET  /exports/{job_id}
-POST /exports/report/{report_id}/docx_stub
-POST /exports/report/{report_id}/pptx_stub
+GET  /exports/{job_id}/download
+POST /exports/report/{report_id}/docx
+POST /exports/report/{report_id}/pptx
+POST /exports/report/{report_id}/pdf
+POST /exports/comparison/docx
+POST /exports/comparison/pptx
 ```
-
-DOCX/PPTX stubs create placeholder text files. Real generation will replace stubs in a future sprint.
 
 ## Running Tests
 
 ```bash
 source .venv/bin/activate
 python -m pytest tests/ -v
+
+# Mandatory baseline verification used by GitHub Actions
+make ci-check
 ```
 
 ## API Overview
@@ -313,8 +318,10 @@ python -m pytest tests/ -v
 | `/brandbooks` | GET | List brandbooks |
 | `/knowledge-base` | GET/POST | Manage knowledge items |
 | `/exports` | GET | List export jobs |
-| `/exports/report/{id}/docx_stub` | POST | DOCX stub export |
-| `/exports/report/{id}/pptx_stub` | POST | PPTX stub export |
+| `/exports/report/{id}/docx` | POST | Generate a real DOCX report |
+| `/exports/report/{id}/pptx` | POST | Generate a real PPTX report |
+| `/exports/report/{id}/pdf` | POST | Generate print-ready HTML for PDF |
+| `/exports/{job_id}/download` | GET | Download a completed export |
 | `/model-profiles` | GET/POST | Manage model profiles |
 | `/model-profiles/{id}/health` | POST | Check profile reachability |
 | `/model-profiles/load-from-config` | POST | Load profiles from config files |

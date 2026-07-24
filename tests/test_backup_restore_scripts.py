@@ -1,6 +1,7 @@
 """Tests for backup and restore scripts."""
 import json
 import os
+import sys
 import tempfile
 import zipfile
 from pathlib import Path
@@ -91,8 +92,6 @@ def test_restore_script_validates_backup_structure():
 
 
 def test_restore_script_rejects_missing_manifest():
-    from scripts.restore_data import restore_backup
-
     with tempfile.TemporaryDirectory() as tmpdir:
         bad_zip = os.path.join(tmpdir, "bad.zip")
         with zipfile.ZipFile(bad_zip, "w") as zf:
@@ -100,7 +99,7 @@ def test_restore_script_rejects_missing_manifest():
 
         import subprocess
         result = subprocess.run(
-            [".venv/bin/python", "scripts/restore_data.py", bad_zip, "--force"],
+            [sys.executable, "scripts/restore_data.py", bad_zip, "--force"],
             capture_output=True, text=True, cwd=os.path.dirname(os.path.abspath(__file__ + "/..")),
         )
         assert "ERROR" in result.stderr or "missing manifest" in result.stderr.lower()

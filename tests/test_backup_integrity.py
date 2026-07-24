@@ -1,5 +1,6 @@
 """Tests for backup integrity checking."""
 import os
+import sys
 import tempfile
 import zipfile
 
@@ -36,7 +37,7 @@ def test_check_backup_fails_on_missing_file():
 def test_check_backup_fails_on_bad_zip():
     import subprocess
     result = subprocess.run(
-        [".venv/bin/python", "scripts/check_backup.py", "/nonexistent/bad.zip"],
+        [sys.executable, "scripts/check_backup.py", "/nonexistent/bad.zip"],
         capture_output=True, text=True,
         cwd=os.path.dirname(os.path.abspath(__file__ + "/..")),
     )
