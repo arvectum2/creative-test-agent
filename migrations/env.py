@@ -31,6 +31,7 @@ import src.modules.batches.models  # noqa: F401
 import src.modules.import_sessions.models  # noqa: F401
 import src.modules.mapping_engine.models  # noqa: F401
 import src.modules.normalized_data.models  # noqa: F401
+import src.modules.data_quality.models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
