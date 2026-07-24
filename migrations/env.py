@@ -35,6 +35,7 @@ import src.modules.data_quality.models  # noqa: F401
 import src.modules.clarifications.models  # noqa: F401
 import src.modules.prediction_readiness.models  # noqa: F401
 import src.modules.quantitative_surveys.models  # noqa: F401
+import src.modules.data_review_reports.models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

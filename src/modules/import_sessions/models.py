@@ -54,6 +54,16 @@ class ImportSourceFile(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
+    @property
+    def content_type(self) -> str | None:
+        """Backward-compatible report alias for the declared MIME type."""
+        return self.declared_mime_type
+
+    @property
+    def duplicate_of_file_id(self) -> None:
+        """Physical deduplication does not collapse provenance records."""
+        return None
+
 
 class SourceInspectionStatus(StrEnum):
     running = "running"
