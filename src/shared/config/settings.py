@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     storage_root: str = "./data/storage"
     max_upload_size_mb: int = 25
     import_max_upload_size_mb: int = 250
+    tabular_inspection_max_rows_per_table: int = 100000
+    tabular_inspection_preview_rows: int = 20
+    tabular_inspection_header_scan_rows: int = 25
+    tabular_inspection_max_columns: int = 512
+    tabular_inspection_max_cell_chars: int = 10000
+    tabular_inspection_blank_row_stop: int = 200
     allowed_upload_types: str = "txt,md,pdf,png,jpg,jpeg,webp"
 
     vision_provider: str = "stub"

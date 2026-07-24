@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from uuid import uuid4
 
-from sqlalchemy import BigInteger, DateTime, Integer, String, Text, event
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, Integer, String, Text, event
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.shared.db.base import Base
@@ -50,6 +50,96 @@ class ImportSourceFile(Base):
     storage_path: Mapped[str] = mapped_column(String(512), nullable=False)
     uploaded_by_user_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class SourceInspectionStatus(StrEnum):
+    running = "running"
+    completed = "completed"
+    failed = "failed"
+
+
+class SourceInspection(Base):
+    __tablename__ = "source_inspection"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    source_file_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    import_session_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    project_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    inspection_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default=SourceInspectionStatus.running, index=True
+    )
+    parser_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    parser_version: Mapped[str] = mapped_column(String(50), nullable=False)
+    file_format: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    encoding: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    delimiter: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    table_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    row_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    column_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    warnings_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class SourceTable(Base):
+    __tablename__ = "source_table"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    inspection_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    source_file_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    sheet_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    sheet_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    header_row_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    header_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    source_row_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    data_row_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    column_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    truncated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    warnings_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class SourceColumn(Base):
+    __tablename__ = "source_column"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    source_table_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_header: Mapped[str | None] = mapped_column(Text, nullable=True)
+    normalized_header: Mapped[str] = mapped_column(String(255), nullable=False)
+    inferred_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    is_empty: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    duplicate_index: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    duplicate_group: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    non_empty_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    sample_values_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class SourceRow(Base):
+    __tablename__ = "source_row"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    source_table_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    source_row_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    row_kind: Mapped[str] = mapped_column(String(50), nullable=False)
+    values_json: Mapped[str] = mapped_column(Text, nullable=False)
+    cell_types_json: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

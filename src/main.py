@@ -29,6 +29,7 @@ from src.modules.job_queue.router import router as job_queue_router
 from src.modules.batches.router import router as batches_router
 from src.modules.demo.router import router as demo_router
 from src.modules.import_sessions.router import router as import_sessions_router
+from src.modules.import_sessions.tabular_router import router as tabular_inspection_router
 from src.shared.api.errors import register_exception_handlers
 from src.shared.config.settings import get_settings
 from src.shared.db.session import check_db_connection, get_database_url, init_db
@@ -95,6 +96,7 @@ app.include_router(reviews_router)
 app.include_router(job_queue_router)
 app.include_router(batches_router)
 app.include_router(import_sessions_router)
+app.include_router(tabular_inspection_router)
 app.include_router(demo_router)
 
 
