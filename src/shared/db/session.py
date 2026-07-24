@@ -72,6 +72,7 @@ def init_db():
     import src.modules.data_quality.models  # noqa: F401
     import src.modules.clarifications.models  # noqa: F401
     import src.modules.prediction_readiness.models  # noqa: F401
+    import src.modules.quantitative_surveys.models  # noqa: F401
     Base.metadata.create_all(bind=get_engine())
 
 
