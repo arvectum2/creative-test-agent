@@ -181,6 +181,23 @@ jobs:
           test -f .ci/pre-pilot-006-rehearsal/evidence/automated_rehearsal_report.md
           test "$(find .ci/pre-pilot-006-rehearsal/backups -name 'pre_restore_*.zip' | wc -l)" -eq 1
 
+      - name: Verify PRE-PILOT-007 calibration protocol
+        shell: bash
+        run: |
+          python scripts/pilot_calibration_protocol.py generate \
+            --output .ci/pre-pilot-007-template
+          python scripts/pilot_calibration_protocol.py validate \
+            --input .ci/pre-pilot-007-template
+          python scripts/pilot_calibration_protocol.py self-test \
+            --output .ci/pre-pilot-007-self-test
+          python scripts/pilot_calibration_protocol.py validate \
+            --input .ci/pre-pilot-007-self-test
+          python scripts/pilot_calibration_protocol.py check-determinism
+          test -f .ci/pre-pilot-007-template/calibration_protocol.json
+          test -f .ci/pre-pilot-007-self-test/calibration_summary.json
+          test -f .ci/pre-pilot-007-self-test/calibration_summary.md
+          test -f .ci/pre-pilot-007-self-test/package_manifest.json
+
       - name: Run CTA-PRE-012 executable test
         shell: bash
         run: |

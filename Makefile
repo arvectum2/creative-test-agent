@@ -1,7 +1,7 @@
 PYTHON = .venv/bin/python
 UVICORN = .venv/bin/uvicorn
 
-.PHONY: test ci-check run seed-demo reset-demo export-pilot check-closed-loop check-demo pilot-check load-demo-profile build-client-pack client-pilot-check check-server docker-build docker-up docker-down docker-logs bootstrap-admin server-build server-up server-down server-logs server-shell server-check server-bootstrap-admin server-backup server-restore migrations-check migrations-upgrade register-prompts eval-stub eval-local check-local-model release-manifest release-check release-bundle verify-release-install pilot-smoke operator-recovery-rehearsal
+.PHONY: test ci-check run seed-demo reset-demo export-pilot check-closed-loop check-demo pilot-check load-demo-profile build-client-pack client-pilot-check check-server docker-build docker-up docker-down docker-logs bootstrap-admin server-build server-up server-down server-logs server-shell server-check server-bootstrap-admin server-backup server-restore migrations-check migrations-upgrade register-prompts eval-stub eval-local check-local-model release-manifest release-check release-bundle verify-release-install pilot-smoke operator-recovery-rehearsal pilot-calibration-package
 
 test:
 	$(PYTHON) -m pytest tests/ -v
@@ -84,6 +84,10 @@ pilot-smoke:
 operator-recovery-rehearsal:
 	$(PYTHON) scripts/operator_recovery_rehearsal.py run --workspace data/rehearsals/pre_pilot_006
 	$(PYTHON) scripts/operator_recovery_rehearsal.py validate --input data/rehearsals/pre_pilot_006
+
+pilot-calibration-package:
+	$(PYTHON) scripts/pilot_calibration_protocol.py generate --output data/generated/pre_pilot_007_calibration/v1
+	$(PYTHON) scripts/pilot_calibration_protocol.py validate --input data/generated/pre_pilot_007_calibration/v1
 
 # ── Prompt Registry ─────────────────────────────────────────────
 
