@@ -16,7 +16,7 @@ from openpyxl.utils.exceptions import InvalidFileException
 from src.shared.config.settings import get_settings
 
 PARSER_NAME = "tabular_inspector"
-PARSER_VERSION = "1.0.1"
+PARSER_VERSION = "1.0.2"
 SUPPORTED_EXTENSIONS = {".xlsx", ".csv", ".tsv"}
 
 
@@ -528,12 +528,57 @@ def _detect_delimiter(sample: str) -> str:
     text = "\n".join(line for line in sample.splitlines() if line.strip())
     if not text:
         return ","
+
+    sample_text = text[:65536]
+    candidates = (",", ";", "\t", "|")
+    sniffed: str | None = None
     try:
-        return csv.Sniffer().sniff(text[:65536], delimiters=",;\t|").delimiter
+        sniffed = csv.Sniffer().sniff(
+            sample_text, delimiters="".join(candidates)
+        ).delimiter
     except csv.Error:
-        counts = {candidate: text.count(candidate) for candidate in (",", ";", "\t", "|")}
-        delimiter, count = max(counts.items(), key=lambda item: item[1])
-        return delimiter if count else ","
+        pass
+
+    ranked: list[tuple[int, float, float, int, int, int, str]] = []
+    for order, candidate in enumerate(candidates):
+        try:
+            parsed_rows = list(
+                csv.reader(io.StringIO(sample_text), delimiter=candidate)
+            )
+        except csv.Error:
+            continue
+
+        widths = [
+            len(row)
+            for row in parsed_rows
+            if any(str(cell).strip() for cell in row)
+        ]
+        structural_widths = [width for width in widths if width > 1]
+        if not structural_widths:
+            continue
+
+        width_counts = Counter(structural_widths)
+        modal_width, modal_count = max(
+            width_counts.items(), key=lambda item: (item[1], item[0])
+        )
+        structural_support = modal_count * (modal_width - 1)
+        modal_consistency = modal_count / len(structural_widths)
+        structural_coverage = len(structural_widths) / len(widths)
+        ranked.append(
+            (
+                structural_support,
+                modal_consistency,
+                structural_coverage,
+                modal_width,
+                int(candidate == sniffed),
+                -order,
+                candidate,
+            )
+        )
+
+    if ranked:
+        return max(ranked)[-1]
+    return sniffed or ","
 
 
 def _serialize_excel_cell(cell) -> tuple[Any, str]:
