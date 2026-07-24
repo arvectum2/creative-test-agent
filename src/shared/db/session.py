@@ -71,6 +71,7 @@ def init_db():
     import src.modules.normalized_data.models  # noqa: F401
     import src.modules.data_quality.models  # noqa: F401
     import src.modules.clarifications.models  # noqa: F401
+    import src.modules.prediction_readiness.models  # noqa: F401
     Base.metadata.create_all(bind=get_engine())
 
 
@@ -95,7 +96,6 @@ def reset_engine(url: str | None = None, echo: bool = False, poolclass=None, con
 
 
 def check_db_connection() -> bool:
-    """Execute a lightweight query to verify the database is reachable."""
     try:
         with create_session() as session:
             session.execute(text("SELECT 1"))
@@ -105,13 +105,9 @@ def check_db_connection() -> bool:
 
 
 def mask_database_url(url: str) -> str:
-    """Mask the password portion of a database URL, if present."""
-    masked = re.sub(r":([^:@/]+)@", r":****@", url)
-    return masked
+    return re.sub(r":([^:@/]+)@", r":****@", url)
 
 
 def get_database_url(masked: bool = True) -> str:
     url = get_settings().database_url
-    if masked:
-        return mask_database_url(url)
-    return url
+    return mask_database_url(url) if masked else url

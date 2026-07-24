@@ -33,6 +33,7 @@ import src.modules.mapping_engine.models  # noqa: F401
 import src.modules.normalized_data.models  # noqa: F401
 import src.modules.data_quality.models  # noqa: F401
 import src.modules.clarifications.models  # noqa: F401
+import src.modules.prediction_readiness.models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
@@ -42,34 +43,24 @@ target_metadata = Base.metadata
 
 
 def get_url():
-    """Return the database URL, preferring a programmatic override over
-    alembic.ini, falling back to application settings."""
     ini_url = config.get_main_option("sqlalchemy.url")
     default_url = "sqlite:///./creative_test_agent.db"
-    # If the config URL was explicitly overridden (e.g. via set_main_option
-    # in tests), use it.
     if ini_url and ini_url != default_url:
         return ini_url
-    # Fall back to application settings so the URL stays in sync with
-    # CTA_DATABASE_URL at runtime.
     try:
-        settings = get_settings()
-        app_url = settings.database_url
-        return app_url
+        return get_settings().database_url
     except Exception:
         return default_url
 
 
 def run_migrations_offline() -> None:
-    url = get_url()
-    context.configure(url=url, target_metadata=target_metadata, literal_binds=True)
+    context.configure(url=get_url(), target_metadata=target_metadata, literal_binds=True)
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
-    url = get_url()
-    connectable = create_engine(url, poolclass=pool.NullPool)
+    connectable = create_engine(get_url(), poolclass=pool.NullPool)
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():

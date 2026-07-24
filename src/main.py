@@ -34,6 +34,7 @@ from src.modules.mapping_engine.router import router as mapping_engine_router
 from src.modules.normalized_data.router import router as normalized_data_router
 from src.modules.data_quality.router import router as data_quality_router
 from src.modules.clarifications.router import router as clarifications_router
+from src.modules.prediction_readiness.router import router as prediction_readiness_router
 from src.shared.api.errors import register_exception_handlers
 from src.shared.config.settings import get_settings
 from src.shared.db.session import check_db_connection, get_database_url, init_db
@@ -44,9 +45,7 @@ from src.modules.projects.history import get_project_history
 from src.shared.version import get_version_info
 
 settings = get_settings()
-
 app = FastAPI(title=settings.app_name)
-
 register_exception_handlers(app)
 
 
@@ -105,10 +104,8 @@ app.include_router(mapping_engine_router)
 app.include_router(normalized_data_router)
 app.include_router(data_quality_router)
 app.include_router(clarifications_router)
+app.include_router(prediction_readiness_router)
 app.include_router(demo_router)
-
-
-# ── Auth middleware for write protection ──────────────────────────
 
 
 @app.middleware("http")
@@ -136,8 +133,7 @@ async def auth_write_middleware(request, call_next):
                 status = getattr(e, "status_code", 401)
                 detail = getattr(e, "detail", str(e)) if hasattr(e, "detail") else str(e)
                 return JSONResponse(status_code=status, content={"detail": detail})
-    response = await call_next(request)
-    return response
+    return await call_next(request)
 
 
 @app.get("/health/db")
