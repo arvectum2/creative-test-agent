@@ -183,3 +183,118 @@ def test_data_quality_can_report_pipeline_blockers_before_normalization(
     assert result.run.normalization_run_id is None
     assert result.run.summary["readiness_indicators"]["normalization_available"] is False
     assert "normalization_not_available" in {item.code for item in result.issues}
+
+
+def test_data_quality_rejects_stale_normalization_after_mapping_change(
+    isolated_data_quality_storage,
+):
+    project_id = _create_project()
+    session, source, table, mapping = _prepare_table(
+        project_id,
+        b"Campaign,Creative,Impressions,Clicks\nAlpha,banner.png,1000,20\n",
+    )
+    _confirm_mappings(
+        session,
+        source,
+        table,
+        mapping,
+        {
+            "campaign": "campaign_reference",
+            "creative": "creative_reference",
+            "impressions": "impressions",
+            "clicks": "clicks",
+        },
+    )
+    first_normalization = normalize_source_table(session.id, source.id, table.id)
+
+    by_header = {item.normalized_header: item for item in mapping.columns}
+    decide_column_mapping(
+        session.id,
+        source.id,
+        table.id,
+        by_header["clicks"].source_column_id,
+        ColumnMappingDecisionRequest(status="confirmed", target_field="ctr"),
+        decided_by_user_id="data-quality-test-user",
+    )
+
+    stale = generate_data_quality_report(session.id, source.id, table.id)
+
+    assert stale.run.overall_status == "blocked"
+    assert stale.run.normalization_run_id is None
+    assert stale.run.normalized_row_count == 0
+    assert stale.run.partial_row_count == 0
+    assert stale.run.performance_observation_count == 0
+    assert stale.run.summary["readiness_indicators"]["normalization_available"] is False
+    assert (
+        stale.run.summary["readiness_indicators"]["normalization_matches_current_mapping"]
+        is False
+    )
+    assert stale.run.summary["lineage"]["selected_normalization_run_id"] is None
+    assert (
+        stale.run.summary["lineage"]["latest_completed_normalization_run_id"]
+        == first_normalization.run.id
+    )
+    assert (
+        stale.run.summary["lineage"]["current_mapping_fingerprint"]
+        != first_normalization.run.mapping_fingerprint
+    )
+    stale_issue = next(
+        item
+        for item in stale.issues
+        if item.code == "normalization_stale_for_current_mapping"
+    )
+    assert stale_issue.severity == "blocking"
+    assert (
+        stale_issue.details["latest_completed_normalization_run_id"]
+        == first_normalization.run.id
+    )
+
+    refreshed_normalization = normalize_source_table(session.id, source.id, table.id)
+    refreshed = generate_data_quality_report(
+        session.id,
+        source.id,
+        table.id,
+        force=True,
+    )
+
+    assert refreshed.run.normalization_run_id == refreshed_normalization.run.id
+    assert refreshed.run.summary["readiness_indicators"]["normalization_available"] is True
+    assert refreshed.run.summary["lineage"]["current_mapping_fingerprint"] == (
+        refreshed_normalization.run.mapping_fingerprint
+    )
+    assert "normalization_stale_for_current_mapping" not in {
+        item.code for item in refreshed.issues
+    }
+
+
+def test_forced_reinspection_does_not_inflate_active_source_table_count(
+    isolated_data_quality_storage,
+):
+    project_id = _create_project()
+    session, source, first_table, _first_mapping = _prepare_table(
+        project_id,
+        b"Campaign,Creative\nAlpha,banner.png\n",
+    )
+
+    second_inspection = inspect_source_file(session.id, source.id, force=True)
+    assert second_inspection.inspection_number == 2
+    second_table = list_source_tables(session.id, source.id)[0]
+    assert second_table.id != first_table.id
+    second_mapping = generate_mapping_suggestions(session.id, source.id, second_table.id)
+    _confirm_mappings(
+        session,
+        source,
+        second_table,
+        second_mapping,
+        {
+            "campaign": "campaign_reference",
+            "creative": "creative_reference",
+        },
+    )
+    normalize_source_table(session.id, source.id, second_table.id)
+
+    result = generate_data_quality_report(session.id, source.id, second_table.id)
+
+    assert result.run.source_table_count == 1
+    assert result.run.summary["coverage"]["source_tables"] == 1
+

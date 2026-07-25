@@ -38,11 +38,12 @@ from src.modules.normalized_data.models import (
     PerformanceObservation,
     Placement,
 )
+from src.modules.normalized_data.service import NORMALIZER_VERSION
 from src.shared.db.repository import db_session, json_dumps, json_loads
 from src.shared.errors import AppError
 
 ENGINE_NAME = "deterministic-data-quality-engine"
-ENGINE_VERSION = "1.0.0"
+ENGINE_VERSION = "1.1.0"
 
 _KEY_COVERAGE_FIELDS = {
     "creative_reference",
@@ -101,11 +102,25 @@ def generate_data_quality_report(
             .order_by(ColumnMapping.source_column_id.asc())
             .all()
         )
+        current_mapping_fingerprint = _current_confirmed_mapping_fingerprint(
+            columns, mappings
+        )
+        latest_completed_normalization = (
+            db.query(NormalizationRun)
+            .filter(
+                NormalizationRun.source_table_id == table.id,
+                NormalizationRun.status == NormalizationRunStatus.completed,
+            )
+            .order_by(NormalizationRun.run_number.desc(), NormalizationRun.created_at.desc())
+            .first()
+        )
         normalization = (
             db.query(NormalizationRun)
             .filter(
                 NormalizationRun.source_table_id == table.id,
                 NormalizationRun.status == NormalizationRunStatus.completed,
+                NormalizationRun.normalizer_version == NORMALIZER_VERSION,
+                NormalizationRun.mapping_fingerprint == current_mapping_fingerprint,
             )
             .order_by(NormalizationRun.run_number.desc(), NormalizationRun.created_at.desc())
             .first()
@@ -119,6 +134,8 @@ def generate_data_quality_report(
             columns=columns,
             mappings=mappings,
             normalization=normalization,
+            current_mapping_fingerprint=current_mapping_fingerprint,
+            latest_completed_normalization=latest_completed_normalization,
         )
         existing = (
             db.query(DataQualityRun)
@@ -157,6 +174,7 @@ def generate_data_quality_report(
             "inspection_available": True,
             "confirmed_mapping_available": bool(mapping_counts["confirmed_mapping_count"]),
             "normalization_available": normalization is not None,
+            "normalization_matches_current_mapping": normalization is not None,
             "creative_references_present": False,
             "creative_assets_linked": False,
             "media_context_present": False,
@@ -164,18 +182,46 @@ def generate_data_quality_report(
             "paired_click_impression_rows_present": False,
         }
         if normalization is None:
-            _append_issue(
-                issues,
-                category=DataQualityCategory.prediction_readiness,
-                code="normalization_not_available",
-                severity=DataQualitySeverity.blocking,
-                message="No completed normalization run is available for this source table.",
-                remediation_hint="Confirm the intended column mappings and run normalization.",
-                scope_type="source_table",
-                scope_id=table.id,
-                source_file_id=source_file.id,
-                source_table_id=table.id,
-            )
+            if latest_completed_normalization is not None:
+                _append_issue(
+                    issues,
+                    category=DataQualityCategory.prediction_readiness,
+                    code="normalization_stale_for_current_mapping",
+                    severity=DataQualitySeverity.blocking,
+                    message=(
+                        "A completed normalization exists, but it was produced from a different "
+                        "mapping contract and cannot be used for this Data Quality run."
+                    ),
+                    remediation_hint="Run normalization again after confirming the current mappings.",
+                    scope_type="source_table",
+                    scope_id=table.id,
+                    source_file_id=source_file.id,
+                    source_table_id=table.id,
+                    details={
+                        "current_mapping_fingerprint": current_mapping_fingerprint,
+                        "latest_completed_normalization_run_id": latest_completed_normalization.id,
+                        "latest_completed_mapping_fingerprint": (
+                            latest_completed_normalization.mapping_fingerprint
+                        ),
+                        "required_normalizer_version": NORMALIZER_VERSION,
+                        "latest_completed_normalizer_version": (
+                            latest_completed_normalization.normalizer_version
+                        ),
+                    },
+                )
+            else:
+                _append_issue(
+                    issues,
+                    category=DataQualityCategory.prediction_readiness,
+                    code="normalization_not_available",
+                    severity=DataQualitySeverity.blocking,
+                    message="No completed normalization run is available for this source table.",
+                    remediation_hint="Confirm the intended column mappings and run normalization.",
+                    scope_type="source_table",
+                    scope_id=table.id,
+                    source_file_id=source_file.id,
+                    source_table_id=table.id,
+                )
         else:
             normalization_counts, readiness_update = _assess_normalization(
                 db,
@@ -214,13 +260,7 @@ def generate_data_quality_report(
         else:
             overall_status = DataQualityOverallStatus.passed
 
-        source_table_count = (
-            db.query(func.count(SourceTable.id))
-            .join(SourceInspection, SourceInspection.id == SourceTable.inspection_id)
-            .filter(SourceInspection.import_session_id == import_session_id)
-            .scalar()
-            or 0
-        )
+        source_table_count = _active_source_table_count(db, import_session_id)
         summary = {
             "assessment_scope": "preliminary_data_quality",
             "prediction_decision": "not_evaluated_in_cta_pre_006",
@@ -232,6 +272,24 @@ def generate_data_quality_report(
                 "confirmed_targets": sorted(confirmed_targets),
             },
             "readiness_indicators": readiness,
+            "lineage": {
+                "current_mapping_fingerprint": current_mapping_fingerprint,
+                "selected_normalization_run_id": normalization.id if normalization else None,
+                "selected_normalization_mapping_fingerprint": (
+                    normalization.mapping_fingerprint if normalization else None
+                ),
+                "latest_completed_normalization_run_id": (
+                    latest_completed_normalization.id
+                    if latest_completed_normalization
+                    else None
+                ),
+                "latest_completed_mapping_fingerprint": (
+                    latest_completed_normalization.mapping_fingerprint
+                    if latest_completed_normalization
+                    else None
+                ),
+                "normalizer_version_required": NORMALIZER_VERSION,
+            },
             "notes": [
                 "Missing optional fields do not reject otherwise usable rows.",
                 "Metric checks compare supplied values but do not calculate or predict CTR.",
@@ -401,10 +459,101 @@ def _load_table_context(db, import_session_id: str, source_file_id: str, source_
     return source_file, table, inspection
 
 
-def _input_fingerprint(*, source_files, source_file, table, inspection, columns, mappings, normalization):
+
+def _current_confirmed_mapping_fingerprint(columns, mappings) -> str:
+    column_by_id = {column.id: column for column in columns}
+    confirmed = [
+        mapping
+        for mapping in mappings
+        if mapping.status == ColumnMappingStatus.confirmed
+        and mapping.target_field
+        and mapping.source_column_id in column_by_id
+    ]
+    confirmed.sort(
+        key=lambda mapping: (
+            column_by_id[mapping.source_column_id].position,
+            mapping.id,
+        )
+    )
+    snapshot = []
+    for mapping in confirmed:
+        column = column_by_id[mapping.source_column_id]
+        snapshot.append(
+            {
+                "column_mapping_id": mapping.id,
+                "source_column_id": column.id,
+                "position": column.position,
+                "source_header": column.source_header,
+                "normalized_header": column.normalized_header,
+                "inferred_type": column.inferred_type,
+                "target_field": mapping.target_field,
+                "mapping_profile_id": mapping.mapping_profile_id,
+                "decision_source": mapping.decision_source,
+            }
+        )
+    encoded = json.dumps(
+        snapshot,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _active_source_table_count(db, import_session_id: str) -> int:
+    inspections = (
+        db.query(SourceInspection)
+        .filter(
+            SourceInspection.import_session_id == import_session_id,
+            SourceInspection.status == "completed",
+        )
+        .order_by(
+            SourceInspection.source_file_id.asc(),
+            SourceInspection.inspection_number.desc(),
+            SourceInspection.created_at.desc(),
+            SourceInspection.id.desc(),
+        )
+        .all()
+    )
+    latest_by_file = {}
+    for inspection in inspections:
+        latest_by_file.setdefault(inspection.source_file_id, inspection.id)
+    if not latest_by_file:
+        return 0
+    return (
+        db.query(func.count(SourceTable.id))
+        .filter(SourceTable.inspection_id.in_(tuple(latest_by_file.values())))
+        .scalar()
+        or 0
+    )
+
+def _input_fingerprint(
+    *,
+    source_files,
+    source_file,
+    table,
+    inspection,
+    columns,
+    mappings,
+    normalization,
+    current_mapping_fingerprint,
+    latest_completed_normalization,
+):
     mapping_by_column = {item.source_column_id: item for item in mappings}
     payload = {
         "engine_version": ENGINE_VERSION,
+        "current_mapping_fingerprint": current_mapping_fingerprint,
+        "latest_completed_normalization": (
+            {
+                "id": latest_completed_normalization.id,
+                "normalizer_version": latest_completed_normalization.normalizer_version,
+                "mapping_fingerprint": latest_completed_normalization.mapping_fingerprint,
+                "status": latest_completed_normalization.status,
+                "run_number": latest_completed_normalization.run_number,
+            }
+            if latest_completed_normalization
+            else None
+        ),
         "source_files": [
             {
                 "id": item.id,

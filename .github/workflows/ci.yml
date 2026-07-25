@@ -100,6 +100,9 @@ jobs:
       - name: Verify PRE-PILOT-006 backup recovery unit tests
         run: python -m pytest tests/test_backup_recovery_integrity.py -q -s
 
+      - name: Verify PRE-PILOT-008 data lineage regressions
+        run: python -m pytest tests/test_data_quality_engine.py -q -s
+
       - name: Run regression test suite
         shell: bash
         run: |
