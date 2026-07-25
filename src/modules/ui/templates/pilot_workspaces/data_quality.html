@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Data Quality — {{ project.name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/ui/pilot-workspaces/{{ project.id }}">{{ project.name }}</a> &gt; Data Quality</div>
+<div class="page-header"><h1>Data Quality и готовность</h1><span class="badge badge-{{ quality.run.overall_status }}">{{ quality.run.overall_status }}</span></div>
+{% if notice %}<div class="alert alert-success">{{ notice }}</div>{% endif %}
+{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+
+<div class="card">
+  <h2>1. Состояние данных</h2>
+  <div class="status-grid">
+    <div class="status-item"><div class="label">Blocking</div><div class="value">{{ quality.run.blocking_issue_count }}</div></div>
+    <div class="status-item"><div class="label">Warnings</div><div class="value">{{ quality.run.warning_issue_count }}</div></div>
+    <div class="status-item"><div class="label">Info</div><div class="value">{{ quality.run.info_issue_count }}</div></div>
+    <div class="status-item"><div class="label">Нормализовано</div><div class="value">{{ quality.run.normalized_row_count }}</div></div>
+    <div class="status-item"><div class="label">Частично</div><div class="value">{{ quality.run.partial_row_count }}</div></div>
+    <div class="status-item"><div class="label">Связано с креативами</div><div class="value">{{ quality.run.linked_creative_count }}</div></div>
+  </div>
+  <table>
+    <tr><th>Уровень</th><th>Категория</th><th>Проблема</th><th>Что делать</th></tr>
+    {% for issue in quality.issues %}
+    <tr>
+      <td><span class="badge badge-{{ issue.severity }}">{{ issue.severity }}</span></td>
+      <td>{{ issue.category }}</td>
+      <td><strong>{{ issue.code }}</strong><br>{{ issue.message }}</td>
+      <td>{{ issue.remediation_hint or 'Зафиксировать как ограничение или уточнить у заказчика.' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if quality.run.summary.lineage %}<details><summary>Lineage</summary><pre>{{ quality.run.summary.lineage | tojson(indent=2) }}</pre></details>{% endif %}
+</div>
+
+<div class="card">
+  <div class="page-header"><h2>2. Вопросы заказчику и аналитику</h2>
+    <div>
+      <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/data-quality/{{ quality.run.id }}/clarifications" style="display:inline;"><input type="hidden" name="audience" value="client"><button type="submit" class="btn btn-primary">Сформировать вопросы заказчику</button></form>
+      <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/data-quality/{{ quality.run.id }}/clarifications" style="display:inline;"><input type="hidden" name="audience" value="analyst"><button type="submit" class="btn btn-secondary">Сформировать вопросы аналитику</button></form>
+    </div>
+  </div>
+  {% set groups = [('Заказчик', client_questions), ('Аналитик', analyst_questions)] %}
+  {% for label, result in groups %}
+    <h3>{{ label }}</h3>
+    {% if result and result.questions %}
+      {% for question in result.questions %}
+      <div class="card">
+        <div><span class="badge badge-{{ question.priority }}">{{ question.priority }}</span> <strong>{{ question.question_text }}</strong></div>
+        <p>{{ question.why_needed }}</p>
+        {% if question.status == 'open' %}
+        <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/data-quality/{{ quality.run.id }}/questions/{{ question.id }}">
+          <div class="form-group"><label>Ответ</label><textarea name="answer" rows="2"></textarea></div>
+          <div class="form-group"><label>Решение</label><select name="resolution"><option value="answered">Ответ получен</option><option value="deferred">Отложить</option><option value="not_available">Нет данных</option><option value="not_applicable">Не применимо</option></select></div>
+          <div class="form-group"><label>Комментарий оператора</label><input type="text" name="note"></div>
+          <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+        </form>
+        {% else %}
+        <p><span class="status-on">{{ question.status }}</span>{% if question.latest_response %}: {{ question.latest_response.answer or question.latest_response.note or '—' }}{% endif %}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}<p>Вопросы не сформированы.</p>{% endif %}
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="page-header"><h2>3. Prediction Readiness</h2><form method="post" action="/ui/pilot-workspaces/{{ project.id }}/data-quality/{{ quality.run.id }}/readiness"><button type="submit" class="btn btn-primary">Оценить готовность</button></form></div>
+  {% if readiness %}
+  <p>Общий статус: <span class="badge badge-{{ readiness.run.overall_status }}">{{ readiness.run.overall_status }}</span>. Это статус доступности функций, а не точность модели.</p>
+  <table><tr><th>Возможность</th><th>Статус</th><th>Режим</th><th>Доказательства</th><th>Сообщение оператору</th></tr>
+    {% for capability in readiness.capabilities %}
+    <tr><td>{{ capability.title }}</td><td><span class="badge badge-{{ capability.status }}">{{ capability.status }}</span></td><td>{{ capability.mode }}</td><td>{{ capability.evidence_strength }}</td><td>{{ capability.user_message }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p>Readiness ещё не рассчитан.</p>{% endif %}
+</div>
+
+<div class="card">
+  <h2>4. Отчёты</h2>
+  <div class="dashboard-grid">
+    <div class="card">
+      <h3>Внутренний Data Review XLSX</h3>
+      <p>Качество, вопросы, readiness, provenance и ограничения.</p>
+      <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/data-quality/{{ quality.run.id }}/reports/data-review"><button type="submit" class="btn btn-primary">Сформировать XLSX</button></form>
+      {% if data_review %}<p><a href="/data-review-reports/{{ data_review.id }}/download" class="btn btn-success">Скачать {{ data_review.filename }}</a></p><p><code>{{ data_review.sha256[:16] }}…</code></p>{% endif %}
+    </div>
+    <div class="card">
+      <h3>Клиентский one-page</h3>
+      <p>Один слайд PPTX, HTML и evidence JSON без выдуманного CTR или lift.</p>
+      <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/data-quality/{{ quality.run.id }}/reports/one-page"><div class="form-group"><select name="locale"><option value="ru">Русский</option><option value="en">English</option></select></div><button type="submit" class="btn btn-primary">Сформировать one-page</button></form>
+      {% if one_page %}
+      <p>Вердикт: <span class="badge badge-{{ one_page.verdict }}">{{ one_page.verdict }}</span></p>
+      <div class="btn-group"><a href="/client-one-page-reports/{{ one_page.id }}/download?artifact=pptx" class="btn btn-success btn-sm">PPTX</a><a href="/client-one-page-reports/{{ one_page.id }}/download?artifact=html" class="btn btn-secondary btn-sm">HTML</a><a href="/client-one-page-reports/{{ one_page.id }}/download?artifact=evidence" class="btn btn-secondary btn-sm">Evidence</a><a href="/client-one-page-reports/{{ one_page.id }}/download?artifact=manifest" class="btn btn-secondary btn-sm">Manifest</a></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="alert alert-info">Техническая готовность не является доказательством точности, причинного creative lift, рыночной эффективности или регуляторного одобрения.</div>
+</div>
+<a href="/ui/pilot-workspaces/{{ project.id }}" class="btn btn-secondary">Вернуться в пилот</a>
+{% endblock %}

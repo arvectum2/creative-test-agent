@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Пилот: {{ project.name }} — Creative Test Agent{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/ui">Dashboard</a> &gt; <a href="/ui/pilot-workspaces">Пилотные проекты</a> &gt; {{ project.name }}</div>
+<div class="page-header"><h1>{{ project.name }}</h1><span class="badge badge-{{ project.status }}">{{ project.status }}</span></div>
+{% if notice %}<div class="alert alert-success">{{ notice }}</div>{% endif %}
+{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+
+<div class="card">
+  <h2>Паспорт пилота</h2>
+  <div class="detail-grid">
+    <div class="detail-field"><span class="field-label">Клиент</span><div class="field-value">{{ client.name if client else project.client_id }}</div></div>
+    <div class="detail-field"><span class="field-label">Проект</span><div class="field-value">{{ project.name }}</div></div>
+    <div class="detail-field"><span class="field-label">Поставки</span><div class="field-value">{{ counts.sessions }}</div></div>
+    <div class="detail-field"><span class="field-label">Креативы</span><div class="field-value">{{ counts.assets }}</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Прогресс оператора</h2>
+  <div class="status-grid">
+    <div class="status-item"><div class="label">1. Проект</div><div class="value"><span class="status-on">PASS</span></div></div>
+    <div class="status-item"><div class="label">2. Материалы</div><div class="value"><span class="{% if progress.materials %}status-on{% else %}status-off{% endif %}">{{ 'PASS' if progress.materials else 'WAIT' }}</span></div></div>
+    <div class="status-item"><div class="label">3. Таблицы</div><div class="value"><span class="{% if progress.inspection %}status-on{% else %}status-off{% endif %}">{{ counts.tables }}</span></div></div>
+    <div class="status-item"><div class="label">4. Mapping</div><div class="value"><span class="{% if progress.mapping %}status-on{% else %}status-off{% endif %}">{{ counts.mapped_tables }}/{{ counts.tables }}</span></div></div>
+    <div class="status-item"><div class="label">5. Нормализация</div><div class="value"><span class="{% if progress.normalization %}status-on{% else %}status-off{% endif %}">{{ counts.normalized_tables }}/{{ counts.tables }}</span></div></div>
+    <div class="status-item"><div class="label">6. Data Quality</div><div class="value"><span class="{% if progress.quality %}status-on{% else %}status-off{% endif %}">{{ counts.quality_tables }}/{{ counts.tables }}</span></div></div>
+    <div class="status-item"><div class="label">7. Readiness</div><div class="value"><span class="{% if progress.readiness %}status-on{% else %}status-off{% endif %}">{{ counts.ready_tables }}/{{ counts.tables }}</span></div></div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="card">
+    <h2>Загрузить поставку заказчика</h2>
+    <p>Файлы сохраняются как неизменяемые оригиналы. CSV/XLSX/TSV автоматически проверяются.</p>
+    <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/intake" enctype="multipart/form-data">
+      <div class="form-group"><label>Название поставки</label><input type="text" name="name" value="Материалы пилота" required></div>
+      <div class="form-group"><label>Комментарий</label><textarea name="notes" rows="2"></textarea></div>
+      <div class="form-group"><label>Файлы заказчика</label><input type="file" name="files" multiple required></div>
+      <button type="submit" class="btn btn-primary">Сохранить и проверить</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Добавить креативы</h2>
+    <p>PNG, JPG, WEBP, PDF и текстовые материалы связываются с этим проектом.</p>
+    <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/creative-assets" enctype="multipart/form-data">
+      <div class="form-group"><label>Креативы</label><input type="file" name="files" multiple required accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.md"></div>
+      <button type="submit" class="btn btn-primary">Добавить креативы</button>
+    </form>
+  </div>
+</div>
+
+{% if assets %}
+<div class="card"><h2>Креативы проекта</h2><table><tr><th>Название</th><th>Тип</th><th></th></tr>{% for asset in assets %}<tr><td>{{ asset.title }}</td><td>{{ asset.asset_type }}</td><td><a class="btn btn-secondary btn-sm" href="/ui/creative-assets/{{ asset.id }}">Открыть</a></td></tr>{% endfor %}</table></div>
+{% endif %}
+
+<div class="card">
+  <h2>Поставки и таблицы</h2>
+  {% if not sessions %}<p>Материалы ещё не загружены.</p>{% endif %}
+  {% for card in sessions %}
+  <div class="detail-section">
+    <div class="page-header"><h3>{{ card.session.name }}</h3><span class="badge badge-{{ card.session.status }}">{{ card.session.status }}</span></div>
+    <p>{{ card.session.file_count }} файлов · {{ card.session.total_bytes }} байт · integrity: {% if card.integrity and card.integrity.ok %}<span class="status-on">PASS</span>{% else %}<span class="status-off">не проверено</span>{% endif %}</p>
+    <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/sessions/{{ card.session.id }}/inspect" style="display:inline;"><button class="btn btn-secondary btn-sm" type="submit">Повторно проверить таблицы</button></form>
+    <table>
+      <tr><th>Файл</th><th>SHA-256</th><th>Инспекция</th><th>Таблица</th><th>Состояние</th><th></th></tr>
+      {% for file_card in card.files %}
+        {% if file_card.tables %}
+          {% for table_card in file_card.tables %}
+          <tr>
+            <td>{{ file_card.source.original_filename }}</td>
+            <td><code>{{ file_card.source.sha256[:12] }}…</code></td>
+            <td>{{ file_card.inspection.status if file_card.inspection else '—' }}</td>
+            <td>{{ table_card.table.sheet_name }} · {{ table_card.table.data_row_count }} строк</td>
+            <td>
+              mapping {{ table_card.mapping.confirmed_columns }}/{{ table_card.table.column_count }} ·
+              {% if table_card.normalization %}normalized{% else %}not normalized{% endif %} ·
+              {% if table_card.quality %}DQ {{ table_card.quality.run.overall_status }}{% else %}DQ not run{% endif %}
+            </td>
+            <td><a class="btn btn-primary btn-sm" href="/ui/pilot-workspaces/{{ project.id }}/sessions/{{ card.session.id }}/files/{{ file_card.source.id }}/tables/{{ table_card.table.id }}">Обработать</a></td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td>{{ file_card.source.original_filename }}</td><td><code>{{ file_card.source.sha256[:12] }}…</code></td><td>{{ file_card.inspection.status if file_card.inspection else ('не табличный файл' if not file_card.tabular else 'не проверен') }}</td><td>—</td><td>—</td><td></td></tr>
+        {% endif %}
+      {% endfor %}
+    </table>
+  </div>
+  {% endfor %}
+</div>
+<a href="/ui/projects/{{ project.id }}" class="btn btn-secondary">Карточка проекта</a>
+{% endblock %}

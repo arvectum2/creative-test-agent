@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Пилотные проекты — Creative Test Agent{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Пилотные проекты</h1>
+  <a href="/ui/pilot-workspaces/new" class="btn btn-primary">Новый пилот</a>
+</div>
+<div class="card">
+  <p>Единый операторский контур: загрузка материалов, проверка таблиц, mapping, Data Quality, вопросы, readiness и отчёты.</p>
+</div>
+{% if projects %}
+<table>
+  <tr><th>Клиент</th><th>Проект</th><th>Статус</th><th>Создан</th><th></th></tr>
+  {% for project in projects %}
+  <tr>
+    <td>{{ client_names.get(project.client_id, project.client_id) }}</td>
+    <td>{{ project.name }}</td>
+    <td><span class="badge badge-{{ project.status }}">{{ project.status }}</span></td>
+    <td>{{ project.created_at.strftime('%Y-%m-%d %H:%M') if project.created_at else '—' }}</td>
+    <td><a href="/ui/pilot-workspaces/{{ project.id }}" class="btn btn-secondary btn-sm">Открыть рабочее пространство</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<div class="card"><p>Пилотных проектов пока нет.</p></div>
+{% endif %}
+{% endblock %}

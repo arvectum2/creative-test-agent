@@ -45,6 +45,8 @@ from src.modules.prediction_readiness.router import router as prediction_readine
 from src.modules.quantitative_surveys.router import router as quantitative_surveys_router
 from src.modules.data_review_reports.router import router as data_review_reports_router
 from src.modules.client_one_page_reports.router import router as client_one_page_reports_router
+from src.modules.pilot_workspace.router import router as pilot_workspace_router
+from src.modules.pilot_workspace.scope_middleware import PilotWorkspaceScopeMiddleware
 from src.shared.api.errors import register_exception_handlers
 from src.shared.config.settings import get_settings
 from src.shared.db.session import check_db_connection, get_database_url, init_db
@@ -89,6 +91,7 @@ if settings.cors_origins_list:
 app.add_middleware(LocalOnlyRequestMiddleware)
 app.add_middleware(BrowserOriginGuardMiddleware)
 app.add_middleware(RequestBodyLimitMiddleware, max_bytes=security_max_request_bytes())
+app.add_middleware(PilotWorkspaceScopeMiddleware)
 if security_headers_enabled():
     app.add_middleware(SecurityHeadersMiddleware)
 
@@ -142,6 +145,7 @@ app.include_router(report_generator_router)
 app.include_router(audit_log_router)
 app.include_router(auth_ui_router)
 app.include_router(ui_router)
+app.include_router(pilot_workspace_router)
 app.include_router(llm_router)
 app.include_router(vision_router, prefix="/vision")
 app.include_router(clients_router)

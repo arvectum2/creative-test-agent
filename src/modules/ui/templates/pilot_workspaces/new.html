@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Новый пилот — Creative Test Agent{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Новый пилот</h1></div>
+{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+<div class="card">
+  <form method="post" action="/ui/pilot-workspaces/new">
+    <h2>1. Клиент</h2>
+    <div class="form-group">
+      <label for="existing_client_id">Выбрать существующего клиента</label>
+      <select name="existing_client_id" id="existing_client_id">
+        <option value="">— Создать нового —</option>
+        {% for client in clients %}<option value="{{ client.id }}">{{ client.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label for="new_client_name">Название нового клиента</label><input type="text" name="new_client_name" id="new_client_name"></div>
+    <div class="form-group"><label for="new_client_industry">Отрасль</label><input type="text" name="new_client_industry" id="new_client_industry"></div>
+    <h2>2. Проект</h2>
+    <div class="form-group"><label for="project_name">Название пилота</label><input type="text" name="project_name" id="project_name" required></div>
+    <div class="form-group"><label for="project_description">Описание и цель</label><textarea name="project_description" id="project_description" rows="4"></textarea></div>
+    <button type="submit" class="btn btn-primary">Создать пилот</button>
+    <a href="/ui/pilot-workspaces" class="btn btn-secondary">Отмена</a>
+  </form>
+</div>
+{% endblock %}

@@ -30,7 +30,9 @@
 <div class="card">
   <h2>{{ t("Quick Actions") }}</h2>
   <div class="btn-group">
-    <a href="/ui/demo" class="btn btn-primary">{{ t("Start Guided Demo") }}</a>
+    <a href="/ui/pilot-workspaces/new" class="btn btn-primary">Новый пилот</a>
+    <a href="/ui/pilot-workspaces" class="btn btn-secondary">Pilot Workspace</a>
+    <a href="/ui/demo" class="btn btn-secondary">{{ t("Start Guided Demo") }}</a>
     <a href="/ui/projects" class="btn btn-secondary">{{ t("Open Projects") }}</a>
     <a href="/ui/admin/maintenance" class="btn btn-secondary">{{ t("Maintenance") }}</a>
     <a href="/ui/evaluations/run" class="btn btn-secondary">{{ t("Run Evaluation") }}</a>
@@ -43,6 +45,9 @@
   </a>
   <a href="/ui/projects" style="text-decoration:none;color:inherit;">
     <div class="dashboard-card"><h3>{{ t("Projects") }}</h3><div class="count">{{ project_count }}</div></div>
+  </a>
+  <a href="/ui/pilot-workspaces" style="text-decoration:none;color:inherit;">
+    <div class="dashboard-card"><h3>Pilot Workspace</h3><div class="count">{{ project_count }}</div></div>
   </a>
   <a href="/ui/creative-assets" style="text-decoration:none;color:inherit;">
     <div class="dashboard-card"><h3>{{ t("Creative Assets") }}</h3><div class="count">{{ asset_count }}</div></div>

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Таблица {{ table.sheet_name }} — {{ project.name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/ui/pilot-workspaces/{{ project.id }}">{{ project.name }}</a> &gt; {{ table.sheet_name }}</div>
+<div class="page-header"><h1>Таблица: {{ table.sheet_name }}</h1><span class="badge">{{ table.data_row_count }} строк · {{ table.column_count }} колонок</span></div>
+{% if notice %}<div class="alert alert-success">{{ notice }}</div>{% endif %}
+{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+
+<div class="card">
+  <h2>1. Проверка структуры</h2>
+  <div class="detail-grid">
+    <div class="detail-field"><span class="field-label">Строка заголовка</span><div class="field-value">{{ table.header_row_number or 'не определена' }}</div></div>
+    <div class="detail-field"><span class="field-label">Уверенность заголовка</span><div class="field-value">{{ table.header_confidence if table.header_confidence is not none else '—' }}</div></div>
+    <div class="detail-field"><span class="field-label">Обрезана</span><div class="field-value">{{ 'да' if table.truncated else 'нет' }}</div></div>
+  </div>
+  {% if table.warnings %}<div class="alert alert-info"><strong>Предупреждения:</strong> {{ table.warnings | tojson }}</div>{% endif %}
+  <div style="overflow-x:auto"><table><tr>{% for column in table.columns %}<th>{{ column.source_header or column.normalized_header }}</th>{% endfor %}</tr>{% for row in table.preview_rows %}<tr>{% for value in row.values %}<td>{{ value if value is not none else '' }}</td>{% endfor %}</tr>{% endfor %}</table></div>
+</div>
+
+<div class="card">
+  <div class="page-header"><h2>2. Mapping колонок</h2><form method="post" action="/ui/pilot-workspaces/{{ project.id }}/sessions/{{ session_id }}/files/{{ file_id }}/tables/{{ table.id }}/mapping/suggest"><button type="submit" class="btn btn-secondary">Обновить предложения</button></form></div>
+  {% if not mapping.run %}<div class="alert alert-info">Сначала нажмите «Обновить предложения».</div>{% endif %}
+  <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/sessions/{{ session_id }}/files/{{ file_id }}/tables/{{ table.id }}/mapping">
+    <table>
+      <tr><th>Исходная колонка</th><th>Тип</th><th>Примеры</th><th>Целевое поле</th><th>Подсказка</th><th>Дубликат</th></tr>
+      {% for column in mapping.columns %}
+      <tr>
+        <td><strong>{{ column.source_header or column.normalized_header }}</strong></td>
+        <td>{{ column.inferred_type }}</td>
+        <td>{{ column.sample_values[:3] | join(', ') }}</td>
+        <td>
+          <select name="mapping_{{ column.source_column_id }}">
+            <option value="">— не менять —</option>
+            <option value="__unmapped__" {% if column.status == 'unmapped' %}selected{% endif %}>Не использовать</option>
+            <option value="__rejected__" {% if column.status == 'rejected' %}selected{% endif %}>Отклонить предложение</option>
+            {% for field in mapping_fields %}<option value="{{ field.key }}" {% if column.status == 'confirmed' and column.target_field == field.key %}selected{% endif %}>{{ field.label }} — {{ field.key }}</option>{% endfor %}
+          </select>
+        </td>
+        <td>
+          {% if column.suggestions %}
+            {% set suggestion = column.suggestions[0] %}
+            <strong>{{ suggestion.target_field }}</strong> · {{ (suggestion.confidence * 100) | round(0) }}%
+          {% else %}—{% endif %}
+        </td>
+        <td><input type="checkbox" name="allow_duplicate_{{ column.source_column_id }}"></td>
+      </tr>
+      {% endfor %}
+    </table>
+    <button type="submit" class="btn btn-primary">Сохранить решения по колонкам</button>
+  </form>
+  <p>Подтверждено: {{ mapping.confirmed_columns }} · предложено: {{ mapping.suggested_columns }} · не размечено: {{ mapping.unmapped_columns }}</p>
+</div>
+
+<div class="card">
+  <h2>3. Нормализация</h2>
+  {% if normalization %}
+  <p><span class="status-on">Выполнена</span> · {{ normalization.run.normalized_row_count }} нормализовано · {{ normalization.run.partial_row_count }} частично · {{ normalization.run.skipped_row_count }} пропущено.</p>
+  {% else %}<p>Нормализация ещё не запускалась.</p>{% endif %}
+  <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/sessions/{{ session_id }}/files/{{ file_id }}/tables/{{ table.id }}/normalize"><button type="submit" class="btn btn-primary">Запустить нормализацию</button></form>
+</div>
+
+<div class="card">
+  <h2>4. Data Quality</h2>
+  {% if quality %}
+  <p>Последний статус: <span class="badge badge-{{ quality.run.overall_status }}">{{ quality.run.overall_status }}</span> · blocking {{ quality.run.blocking_issue_count }} · warning {{ quality.run.warning_issue_count }}.</p>
+  <a href="/ui/pilot-workspaces/{{ project.id }}/data-quality/{{ quality.run.id }}" class="btn btn-secondary">Открыть результаты</a>
+  {% else %}<p>Проверка качества ещё не запускалась.</p>{% endif %}
+  <form method="post" action="/ui/pilot-workspaces/{{ project.id }}/sessions/{{ session_id }}/files/{{ file_id }}/tables/{{ table.id }}/data-quality" style="display:inline;"><button type="submit" class="btn btn-primary">Запустить Data Quality</button></form>
+</div>
+<a href="/ui/pilot-workspaces/{{ project.id }}" class="btn btn-secondary">Вернуться в пилот</a>
+{% endblock %}
