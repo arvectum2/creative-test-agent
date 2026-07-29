@@ -1,6 +1,6 @@
 # Creative Test Agent — каноническая дорожная карта
 
-Версия: 1.0  
+Версия: 1.1  
 Дата фиксации: 2026-07-29  
 Статус документа: canonical / single source of truth
 
@@ -133,10 +133,10 @@
 
 ### 12. CTA-VIS-002 — Unified Creative Visual Context
 
-- Статус: `PLANNED`
+- Статус: `DONE`
 - Контур: `GITHUB`
 - Зависит от: CTA-VISION-001, CTA-CAL-002
-- Цель: создать единую типизированную структуру визуального контекста.
+- Результат: создана единая версионированная типизированная структура визуального контекста с evidence-bound observations, обязательными confidence/provenance, явной семантикой missing-versus-absent и совместимостью с legacy `VisionResult`.
 - Scope:
   - OCR text;
   - visual summary;
@@ -562,4 +562,4 @@
 
 К реализации первой запускается:
 
-`CTA-VIS-002 — Unified Creative Visual Context`.
+`CTA-VIS-003 — Full-Pipeline Visual Context Propagation`.

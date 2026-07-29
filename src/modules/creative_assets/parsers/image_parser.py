@@ -4,6 +4,7 @@ from PIL import Image
 
 from src.modules.creative_assets.parsers.base import FileParser, ParsedCreativeAsset
 from src.shared.vision.factory import get_vision_analyzer
+from src.shared.vision.schemas import VisionResult
 
 
 class ImageParser(FileParser):
@@ -25,15 +26,11 @@ class ImageParser(FileParser):
             visual_result = analyzer.analyze_image(str(path), metadata={"image": img_meta})
             visual_data = visual_result.model_dump()
         except Exception:
-            visual_data = {
-                "provider": "error",
-                "visual_summary": "",
-                "detected_text": "",
-                "layout_notes": [],
-                "visual_risks": [],
-                "warnings": ["visual_analysis_errored"],
-                "metadata": {},
-            }
+            visual_data = VisionResult(
+                provider="error",
+                warnings=["visual_analysis_errored"],
+                metadata={"image": img_meta},
+            ).model_dump()
 
         extracted_text = visual_data.get("detected_text") or ""
         warnings = visual_data.get("warnings", [])

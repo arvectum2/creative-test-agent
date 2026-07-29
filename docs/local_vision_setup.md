@@ -57,7 +57,9 @@ Non-image uploads (txt, md, pdf) are parsed by their respective parsers and prod
 
 ## How Visual Analysis Is Stored
 
-When an image is uploaded, the image parser runs `get_vision_analyzer().analyze_image()` during parsing. The normalized `VisionResult` is stored in `metadata.visual_analysis`:
+When an image is uploaded, the image parser runs `get_vision_analyzer().analyze_image()` during parsing. The normalized `VisionResult` is stored in `metadata.visual_analysis`.
+
+The legacy top-level fields remain available for current consumers. The `visual_context` sibling contains the versioned canonical, evidence-bound contract:
 
 ```json
 {
@@ -74,20 +76,54 @@ When an image is uploaded, the image parser runs `get_vision_analyzer().analyze_
     }
   ],
   "warnings": ["..."],
-  "metadata": {}
+  "metadata": {},
+  "visual_context": {
+    "schema_name": "canonical_visual_context",
+    "schema_version": "1.0",
+    "extraction": {
+      "provider": "stub",
+      "confidence": 0.0,
+      "provenance": [
+        {
+          "source_type": "stub",
+          "provider": "stub",
+          "evidence_key": "visual_analysis",
+          "model": null,
+          "details": {}
+        }
+      ],
+      "warnings": ["vision_stub_mode"],
+      "metadata": {}
+    },
+    "ocr_text": null,
+    "visual_summary": null,
+    "brand_logo_prominence": null,
+    "packshot": null,
+    "cta": null,
+    "promo_badge": null,
+    "hierarchy": null,
+    "message_visual_binding": null,
+    "cognitive_load": null,
+    "readability": null,
+    "visual_risks": null
+  }
 }
 ```
+
+`null` means unobserved or unassessed, not absent. An assessed absence must be recorded explicitly with `presence: "absent"`, confidence and provenance. See [Canonical Visual Context Schema](vision/canonical_visual_context_schema.md).
 
 Visual analysis can also be triggered on demand via `POST /creative-assets/{id}/analyze-visual`.
 
 ## How Visual Notes Enter Reports
 
-During report generation, `_build_visual_notes()` extracts `visual_analysis` from the asset's metadata and formats it as human-readable text. The result is:
+During report generation, `_build_visual_notes()` extracts the backward-compatible top-level fields from the asset's `visual_analysis` metadata and formats them as human-readable text. The result is:
 
 - Stored in the `report.visual_notes` column.
 - Included in markdown reports as `## Visual Analysis Notes`.
 - Included in HTML reports as a dedicated visual notes section.
 - In `client_facing` mode, technical `stub` warnings are softened to `limited`.
+
+Full propagation of `visual_context` into every analytical stage is tracked separately as `CTA-VIS-003`.
 
 ## API Reference
 
