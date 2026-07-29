@@ -1,0 +1,77 @@
+{
+  "profile_name": "ozon_brand_lift_diagnostic_v1",
+  "demo": false,
+  "description": "Evidence-calibrated diagnostic rubric based on nine Ozon brand-lift campaign rows. It supports pre-test diagnostics and does not predict causal uplift.",
+  "rubric": {
+    "name": "Ozon Brand-Lift Diagnostic Rubric v1",
+    "criteria": [
+      {
+        "name": "brand_prominence_and_legibility",
+        "description": "Upper-funnel: is the brand immediately visible, readable and bound to the product rather than merely present? Higher means stronger brand salience."
+      },
+      {
+        "name": "category_problem_clarity",
+        "description": "Upper- and lower-funnel: can a viewer quickly identify the category, need state or problem being addressed?"
+      },
+      {
+        "name": "single_minded_message",
+        "description": "Recall: does the creative communicate one dominant proposition without competing headlines or benefit overload?"
+      },
+      {
+        "name": "message_visual_binding",
+        "description": "Recall: do headline, packshot, imagery and visual hierarchy reinforce the same idea so the message can be remembered with the brand?"
+      },
+      {
+        "name": "specific_benefit_and_reason_to_buy",
+        "description": "Purchase intent: is the benefit concrete, differentiated and directly relevant rather than generic language such as only 'energy' or 'benefit'?"
+      },
+      {
+        "name": "product_proof_and_trust",
+        "description": "Purchase intent: are packshot, product cues, credible evidence and claim qualification sufficient to support the promise without overclaiming?"
+      },
+      {
+        "name": "audience_context_relevance",
+        "description": "Does the message fit the audience's current context, season, life stage, pain and purchase situation?"
+      },
+      {
+        "name": "distinctiveness_and_memory_hook",
+        "description": "Awareness/recall: is there a distinctive device beyond category colors, packshot and a standard discount badge?"
+      },
+      {
+        "name": "conversion_cue",
+        "description": "Purchase intent: is there a clear next action and offer, and is it supported by a reason to act rather than relying on discount/CTA alone?"
+      },
+      {
+        "name": "cognitive_load_and_hierarchy",
+        "description": "Can the viewer decode brand, problem, benefit, product and CTA in the intended order at placement size? Higher means lower cognitive load and stronger hierarchy."
+      },
+      {
+        "name": "negative_reaction_resilience",
+        "description": "Higher is better: low risk of confusion, distrust, backlash, inappropriate tone or claim concerns. Do not score raw risk in the opposite direction."
+      },
+      {
+        "name": "funnel_coherence",
+        "description": "Does the creative connect attention and brand salience to a credible reason to consider or buy, rather than excelling at only one funnel stage?"
+      }
+    ],
+    "scale_min": 1,
+    "scale_max": 10
+  },
+  "calibration_reference": {
+    "dataset_path": "data/calibration/ozon_brand_lift_v1/campaign_outcomes.csv",
+    "method": "descriptive creative audit + approximate two-proportion z-tests + BH-FDR",
+    "constraints": [
+      "No causal attribution to an individual banner when multiple assets or placements are linked.",
+      "No prediction of percentage-point uplift.",
+      "No training claim from nine campaign rows.",
+      "Missing metrics remain missing."
+    ]
+  },
+  "report_preferences": {
+    "default_mode": "internal",
+    "formats": [
+      "markdown",
+      "html"
+    ]
+  }
+}

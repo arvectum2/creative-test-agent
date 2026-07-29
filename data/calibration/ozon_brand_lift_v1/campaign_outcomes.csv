@@ -1,0 +1,28 @@
+case_id,brand,period,platform,control_n,test_n,metric,cg_rate,tg_rate,uplift_pp,ci95_low_pp,ci95_high_pp,p_value,bh_q_value,evidence_status,causal_interpretation_allowed,notes
+OZON-002,Aerius,2025-04-28/2025-06-30,OZON,987,1104,awareness,0.355,0.377,2.2,-1.93,6.33,0.29732888,0.36490362,not_supported,false,Approximate inference from rounded rates.
+OZON-002,Aerius,2025-04-28/2025-06-30,OZON,987,1104,customer_consideration,0.136,0.144,0.8,-2.18,3.78,0.59888136,0.62199218,not_supported,false,Approximate inference from rounded rates.
+OZON-002,Aerius,2025-04-28/2025-06-30,OZON,987,1104,purchase_intent,0.313,0.372,5.9,1.84,9.96,0.0045839352,0.012376625,fdr_supported,false,Approximate inference from rounded rates.
+OZON-001,Bepanthen Ointment,2025-04-28/2025-07-11,OZON,1015,1133,ad_recall,0.242,0.260,1.8,-1.87,5.47,0.33710017,0.39572629,not_supported,false,Approximate inference from rounded rates.
+OZON-001,Bepanthen Ointment,2025-04-28/2025-07-11,OZON,1015,1133,awareness,0.246,0.256,1.0,-2.67,4.67,0.59369121,0.62199218,not_supported,false,Approximate inference from rounded rates.
+OZON-001,Bepanthen Ointment,2025-04-28/2025-07-11,OZON,1015,1133,purchase_intent,0.238,0.263,2.5,-1.17,6.17,0.18229094,0.23472756,not_supported,false,Approximate inference from rounded rates.
+OZON-008,Elevit,2026-02-01/2026-04-30,OZON,1052,1083,ad_recall,0.240,0.319,7.9,4.11,11.69,4.8213947e-05,0.00021696276,fdr_supported,false,Approximate inference from rounded rates.
+OZON-008,Elevit,2026-02-01/2026-04-30,OZON,1052,1083,awareness,0.358,0.433,7.5,3.36,11.64,0.00039636541,0.0015288374,fdr_supported,false,Approximate inference from rounded rates.
+OZON-008,Elevit,2026-02-01/2026-04-30,OZON,1052,1083,purchase_intent,0.252,0.293,4.1,0.33,7.87,0.033458871,0.069491963,nominal_only,false,Approximate inference from rounded rates.
+OZON-004,Relief,2025-10-01/2025-12-31,OZON,1206,1232,ad_recall,0.291,0.326,3.5,-0.16,7.16,0.061429866,0.11225826,not_supported,false,Approximate inference from rounded rates. Creative archive contains VK asset while source table says OZON; linkage requires confirmation.
+OZON-004,Relief,2025-10-01/2025-12-31,OZON,1206,1232,awareness,0.302,0.343,4.1,0.39,7.81,0.030390247,0.068378056,nominal_only,false,Approximate inference from rounded rates. Creative archive contains VK asset while source table says OZON; linkage requires confirmation.
+OZON-004,Relief,2025-10-01/2025-12-31,OZON,1206,1232,purchase_intent,0.281,0.310,2.9,-0.72,6.52,0.1166565,0.18527797,not_supported,false,Approximate inference from rounded rates. Creative archive contains VK asset while source table says OZON; linkage requires confirmation.
+OZON-003,Rennie,2025-04-29/2025-07-04,OZON,936,911,ad_recall,0.221,0.258,3.7,-0.19,7.59,0.062401093,0.11232197,not_supported,false,Approximate inference from rounded rates.
+OZON-003,Rennie,2025-04-29/2025-07-04,OZON,936,911,awareness,0.198,0.255,5.7,1.89,9.51,0.0034136031,0.010240809,fdr_supported,false,Approximate inference from rounded rates.
+OZON-003,Rennie,2025-04-29/2025-07-04,OZON,936,911,purchase_intent,0.221,0.216,-0.5,-4.27,3.27,0.79488806,0.79488806,not_supported,false,Approximate inference from rounded rates.
+OZON-006,Supradyn Energy,2025-11-01/2025-12-31,OZON,1661,1636,ad_recall,0.219,0.240,2.1,-0.77,4.97,0.15158556,0.21541106,not_supported,false,Approximate inference from rounded rates.
+OZON-006,Supradyn Energy,2025-11-01/2025-12-31,OZON,1661,1636,awareness,0.208,0.232,2.4,-0.43,5.23,0.096196409,0.16233144,not_supported,false,Approximate inference from rounded rates.
+OZON-006,Supradyn Energy,2025-11-01/2025-12-31,OZON,1661,1636,purchase_intent,0.212,0.233,2.1,-0.74,4.94,0.14707285,0.21541106,not_supported,false,Approximate inference from rounded rates.
+OZON-005,Supradyn Immuno,2025-09-01/2025-10-31,OZON,1024,1079,ad_recall,0.187,0.269,8.2,4.64,11.76,7.7271406e-06,6.9544265e-05,fdr_supported,false,Approximate inference from rounded rates.
+OZON-005,Supradyn Immuno,2025-09-01/2025-10-31,OZON,1024,1079,awareness,0.221,0.304,8.3,4.56,12.04,1.5726563e-05,0.0001061543,fdr_supported,false,Approximate inference from rounded rates.
+OZON-005,Supradyn Immuno,2025-09-01/2025-10-31,OZON,1024,1079,purchase_intent,0.228,0.309,8.1,4.33,11.87,2.862151e-05,0.00015455615,fdr_supported,false,Approximate inference from rounded rates.
+OZON-009,Supradyn Kids,2026-03-04/2026-04-30,OZON,1648,1674,ad_recall,0.280,0.301,2.1,-0.99,5.19,0.18258699,0.23472756,not_supported,false,Approximate inference from rounded rates.
+OZON-009,Supradyn Kids,2026-03-04/2026-04-30,OZON,1648,1674,awareness,0.286,0.297,1.1,-1.99,4.19,0.48546201,0.54614476,not_supported,false,Approximate inference from rounded rates.
+OZON-009,Supradyn Kids,2026-03-04/2026-04-30,OZON,1648,1674,purchase_intent,0.279,0.319,4.0,0.89,7.11,0.011824287,0.029023613,fdr_supported,false,Approximate inference from rounded rates.
+OZON-007,Theraflex Ultra,2025-10-01/2025-12-31,OZON,1134,1100,ad_recall,0.341,0.412,7.1,3.09,11.11,0.00053282775,0.0017982937,fdr_supported,false,Approximate inference from rounded rates.
+OZON-007,Theraflex Ultra,2025-10-01/2025-12-31,OZON,1134,1100,awareness,0.236,0.378,14.2,10.42,17.98,3.2929215e-13,4.4454441e-12,fdr_supported,false,Approximate inference from rounded rates.
+OZON-007,Theraflex Ultra,2025-10-01/2025-12-31,OZON,1134,1100,purchase_intent,0.418,0.592,17.4,13.32,21.48,2.220446e-16,5.9952043e-15,fdr_supported,false,Approximate inference from rounded rates.

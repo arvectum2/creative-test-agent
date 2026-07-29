@@ -1,0 +1,17 @@
+filename,sha256,width,height,brand,inferred_platform,linked_case_id,linkage_confidence,notes
+1080x450.jpg,4520ca6212e60f2c4287bd8766f5797d72fce065db8b861052a3d6a52569d21b,1080,450,Bepanthen Ointment,OZON,OZON-001,medium,Same campaign also has vertical IMG_5658.jpeg.
+IMG_5658.jpeg,bbb9c18092363d743a6b68429b5f7cd63c2166353c29db8f774b60097f358581,1080,1350,Bepanthen Ointment,OZON,OZON-001,medium,Different format; campaign-level outcome not asset-isolated.
+Ozon_Aerius_Spring_1080x450_v1.jpg,837d445003e0c68a9f3a4df8e723f1e37fe6d1dfca9b918dac7bcaf4f8951f2f,1080,450,Aerius,OZON,OZON-002,medium,Exact platform naming; another VK variant exists.
+Aerius_April-25_Target_vk_1080x607.jpg,3e0e2f393a8c6bca8dea1262bf3bb394aed002b3f6305f3919f1a461a24a2896,1080,607,Aerius,VK,OZON-002,low,Cross-platform variant; do not attribute OZON outcome without confirmation.
+Bayer_Rennie_camp30+_Ozon_1080x450.jpg,894521f67d1ae9b1a1912fc10e17373223814453f24ccde1f647cef23bb7b0be,1080,450,Rennie,OZON,OZON-003,low,Multiple Ozon and VK variants in archive.
+_Bayer_Ozon_Rennie_1080x450_v2[3].jpg,ffd67247d06a65e1475d7a76496c5f23029036dae691fa15690ba58322c3d615,1080,450,Rennie,OZON,OZON-003,low,Multiple Ozon variants; no asset-level split.
+Bayer_Rennie_zoomers_VK_1080x607.jpg,4dfad82115301f6772c6d7a3cfc1f919ee19933a896c840268c29ca5a822dcce,1080,607,Rennie,VK,OZON-003,low,Cross-platform variant.
+Rennie_April-25_Target-VK_1080x607.jpg,9322b10b8ac91bbf8678cd67999c0bb5be466bf09b7a1a1612a55bd38cd2b2c6,1080,607,Rennie,VK,OZON-003,low,Cross-platform variant.
+Bayer_Relief_VK_1080x607[6].jpg,a81bfe9ebde36538d730f4fea48aa8ce5162d461c74e7e1c1b2d990914058504,1080,607,Relief,VK,OZON-004,low,Source table platform is OZON; mismatch must be resolved.
+Bayer_Supradyn_Immuno_Ozon_1080x450px.jpg,474b05c6b4bac4d256f86a306dff45eaa25ec93d39cd6f406d80e6c019dabf30,1080,450,Supradyn Immuno,OZON,OZON-005,high,Single exact-platform asset.
+Bayer_Autumn_campaign_Supradyn_Energy_1080x450px (2).jpg,6062b37096ae37ebbcfd2f6fbc5170f7045905a0f5e0aa94111befd076df7fff,1080,450,Supradyn Energy,OZON,OZON-006,high,Single exact-platform asset.
+Ozon_Theraflex_Category_1080x450_v2 (1).jpg,016ec78e03850dad70193f9ab31c6e0866b0c365cae420c2d7f057e338326967,1080,450,Theraflex Ultra,OZON,OZON-007,medium,Two Ozon variants; campaign-level outcome.
+Theraflex_Ozon_Category_1080x450.jpg,8d8e7f3fa4c52676d8f7541d5641a842be54f9a0d2dd5fe39a163415e9e64a13,1080,450,Theraflex Ultra,OZON,OZON-007,medium,Two Ozon variants; campaign-level outcome.
+Elevit_Ozon_1080x450.jpg,df9e0e07c8ca254ef41db0de19f09eaa4cd0de01b85d04341ced5d0147d8ff35,1080,450,Elevit,OZON,OZON-008,high,Single exact-platform asset.
+Supradin-kids-Feb-26_Ozon_1080x450_v1.jpg,033f880cb3d13ef854c4aa2e3913a377c2dfaa1fd654effc4d0f7aa3573921a6,1080,450,Supradyn Kids,OZON,OZON-009,high,Single exact-platform asset.
+Triderm_April-26_Ozon_1080x450_V2 (1).jpg,e5d74e906cb22f5753ade3fd8762902670601f9e1756a8d97440ac18a63281af,1080,450,Triderm,OZON,,none,No outcome row in supplied spreadsheet; unlabeled/holdout only.
