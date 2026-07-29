@@ -144,7 +144,7 @@ def _seed_campaign_evidence_workspace() -> dict[str, str]:
         triderm = CreativeAsset(
             title="Triderm",
             asset_type="image",
-            original_filename="triderm.png",
+            original_filename="Triderm.png",
             file_path="/tmp/triderm.png",
             mime_type="image/png",
             file_size_bytes=100,
@@ -164,7 +164,7 @@ def _seed_campaign_evidence_workspace() -> dict[str, str]:
             normalization_run_id=run.id,
             project_id=project.id,
             reference_key=uuid4().hex,
-            display_reference="triderm.png",
+            display_reference="Triderm.png",
             creative_asset_id=triderm.id,
             metadata_json=json_dumps({
                 "linked_case_id": None,
@@ -228,9 +228,9 @@ def _seed_campaign_evidence_workspace() -> dict[str, str]:
             overall_score=7.2,
             final_recommendation="revise",
             structured_findings_json=json_dumps({
-                "findings": [{"title": "CTA is visible", "visual_evidence_refs": ["visual:test"]}],
+                "findings": [{"criterion": "call_to_action", "score": 8, "explanation": "CTA is visible", "visual_evidence_refs": ["visual:test"]}],
                 "scorecard": [{"criterion": "brand_prominence_and_legibility", "score": 8, "rationale": "Brand is readable"}],
-                "risks": [{"risk": "Generic benefit language"}],
+                "risks": [{"risk_type": "message", "level": "low", "description": "Generic benefit language"}],
                 "effective_recommendation": "manual_review_required",
                 "visual_traceability_status": "complete",
                 "visual_decision_status": "manual_review_required",
