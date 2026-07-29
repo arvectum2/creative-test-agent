@@ -47,6 +47,8 @@ from src.modules.data_review_reports.router import router as data_review_reports
 from src.modules.client_one_page_reports.router import router as client_one_page_reports_router
 from src.modules.pilot_workspace.router import router as pilot_workspace_router
 from src.modules.pilot_workspace.scope_middleware import PilotWorkspaceScopeMiddleware
+from src.modules.campaign_evidence.router import router as campaign_evidence_router
+from src.modules.campaign_evidence.ui_router import router as campaign_evidence_ui_router
 from src.shared.api.errors import register_exception_handlers
 from src.shared.config.settings import get_settings
 from src.shared.db.session import check_db_connection, get_database_url, init_db
@@ -145,6 +147,7 @@ app.include_router(report_generator_router)
 app.include_router(audit_log_router)
 app.include_router(auth_ui_router)
 app.include_router(ui_router)
+app.include_router(campaign_evidence_ui_router)
 app.include_router(pilot_workspace_router)
 app.include_router(llm_router)
 app.include_router(vision_router, prefix="/vision")
@@ -173,6 +176,7 @@ app.include_router(prediction_readiness_router)
 app.include_router(quantitative_surveys_router)
 app.include_router(data_review_reports_router)
 app.include_router(client_one_page_reports_router)
+app.include_router(campaign_evidence_router)
 app.include_router(security_router)
 app.include_router(demo_router)
 
