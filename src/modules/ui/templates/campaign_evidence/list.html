@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Ozon Campaign Evidence — {{ workspace.project_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs">
+  <a href="/ui">Dashboard</a> &gt;
+  <a href="/ui/projects">Projects</a> &gt;
+  <a href="/ui/projects/{{ workspace.project_id }}">{{ workspace.project_name }}</a> &gt;
+  Campaign Evidence
+</div>
+
+<div class="page-header">
+  <div>
+    <h1>Ozon Campaign Evidence Workspace</h1>
+    <p class="evidence-subtitle">Campaign → creative set → observed CG/TG outcomes → asset-level agent diagnostics</p>
+  </div>
+</div>
+
+<div class="alert alert-info evidence-boundary">
+  <strong>Evidence boundary:</strong> CG/TG values are observed campaign-level facts. Agent diagnostics are model outputs for individual assets. The workspace does not infer missing values, predict uplift, or attribute campaign outcomes to one asset.
+</div>
+
+<div class="status-grid">
+  <div class="status-item"><div class="label">Campaigns</div><div class="value">{{ workspace.summary.campaign_count }}</div></div>
+  <div class="status-item"><div class="label">Observed metrics</div><div class="value">{{ workspace.summary.outcome_count }}</div></div>
+  <div class="status-item"><div class="label">Creative records</div><div class="value">{{ workspace.summary.creative_count }}</div></div>
+  <div class="status-item"><div class="label">Accepted links</div><div class="value">{{ workspace.summary.accepted_asset_count }}</div></div>
+  <div class="status-item"><div class="label">Rejected links</div><div class="value">{{ workspace.summary.rejected_asset_count }}</div></div>
+  <div class="status-item"><div class="label">Campaigns with diagnostics</div><div class="value">{{ workspace.summary.campaigns_with_diagnostics }}</div></div>
+</div>
+
+{% for campaign in workspace.campaigns %}
+<article class="card campaign-evidence-card{% if campaign.is_contrast_case %} campaign-evidence-contrast{% endif %}">
+  <div class="campaign-evidence-heading">
+    <div>
+      <div class="campaign-case-id">{{ campaign.case_id }}{% if campaign.is_contrast_case %} · contrast case {{ campaign.showcase_rank }}{% endif %}</div>
+      <h2>{{ campaign.brand or campaign.product or campaign.case_id }}</h2>
+      <div class="campaign-meta">
+        {{ campaign.platform or 'platform missing' }} ·
+        {{ campaign.period_start or 'date missing' }} — {{ campaign.period_end or 'date missing' }}
+      </div>
+    </div>
+    <a class="btn btn-primary" href="/ui/projects/{{ workspace.project_id }}/campaign-evidence/{{ campaign.campaign_id }}">Open evidence</a>
+  </div>
+
+  <div class="campaign-evidence-columns">
+    <section>
+      <h3>Observed CG/TG outcomes</h3>
+      {% if campaign.outcomes %}
+      <div class="table-scroll">
+        <table class="evidence-metrics-table">
+          <tr><th>Funnel metric</th><th>CG</th><th>TG</th><th>Δ pp</th></tr>
+          {% for outcome in campaign.outcomes %}
+          <tr>
+            <td>{{ outcome.metric_label }}</td>
+            <td>{% if outcome.cg_rate is not none %}{{ '%.1f'|format(outcome.cg_rate * 100) }}%{% else %}—{% endif %}</td>
+            <td>{% if outcome.tg_rate is not none %}{{ '%.1f'|format(outcome.tg_rate * 100) }}%{% else %}—{% endif %}</td>
+            <td>{% if outcome.uplift_pp_descriptive is not none %}{{ '%+.1f'|format(outcome.uplift_pp_descriptive) }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-inline">No observed outcomes.</div>
+      {% endif %}
+    </section>
+
+    <section>
+      <h3>Creative set and diagnostics</h3>
+      {% if campaign.assets %}
+      <div class="asset-chip-list">
+        {% for asset in campaign.assets %}
+        <div class="asset-chip">
+          <span class="badge badge-linkage-{{ asset.linkage_status }}">{{ asset.linkage_status }}</span>
+          <strong>{{ asset.filename or asset.title }}</strong>
+          <span>{{ '%.0f'|format(asset.linkage_confidence * 100) }}% linkage</span>
+          <span class="badge {% if asset.diagnostic.status == 'completed' %}badge-completed{% else %}badge-created{% endif %}">diagnostic: {{ asset.diagnostic.status }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-inline">No linked creatives.</div>
+      {% endif %}
+    </section>
+  </div>
+
+  {% if campaign.limitations %}
+  <div class="campaign-limitations">
+    {% for limitation in campaign.limitations %}
+    <span class="limitation-pill limitation-{{ limitation.severity }}" title="{{ limitation.message }}">{{ limitation.code }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</article>
+{% endfor %}
+
+{% if workspace.unlabelled_assets %}
+<div class="card unlabelled-assets-card">
+  <h2>Assets without campaign outcomes</h2>
+  <p>These files remain visible as unlabelled evidence and are not attached to an outcome row.</p>
+  <div class="creative-preview-grid">
+    {% for asset in workspace.unlabelled_assets %}
+    <div class="creative-preview-card">
+      {% if asset.preview_url %}<img src="{{ asset.preview_url }}" alt="{{ asset.filename or asset.title }}" loading="lazy">{% endif %}
+      <strong>{{ asset.filename or asset.title }}</strong>
+      <span class="badge badge-linkage-missing">{{ asset.linkage_status }}</span>
+      {% for note in asset.linkage_notes %}<small>{{ note }}</small>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card evidence-provenance-card">
+  <h2>Workspace provenance</h2>
+  <div class="detail-grid">
+    <div class="detail-field"><span class="field-label">Normalization run</span><div class="field-value"><code>{{ workspace.normalization_run_id }}</code></div></div>
+    <div class="detail-field"><span class="field-label">Mapping version</span><div class="field-value">{{ workspace.mapping_version or '—' }}</div></div>
+    <div class="detail-field"><span class="field-label">Source fingerprint</span><div class="field-value"><code>{{ workspace.source_fingerprint or '—' }}</code></div></div>
+    <div class="detail-field"><span class="field-label">Loader</span><div class="field-value">{{ workspace.generated_from_loader }}</div></div>
+  </div>
+</div>
+{% endblock %}
