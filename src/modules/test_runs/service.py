@@ -2,7 +2,6 @@ import json
 from datetime import datetime, timezone
 
 from src.modules.test_runs.models import TestRun
-from src.modules.test_runs.pipeline import run_pipeline
 from src.modules.test_runs.schemas import (
     AudienceReaction,
     BrandbookCompliance,
@@ -13,6 +12,7 @@ from src.modules.test_runs.schemas import (
     ScorecardEntry,
     TestRunResponse,
 )
+from src.modules.test_runs.traceability import run_traceable_pipeline
 from src.shared.db.repository import db_session, json_dumps, json_loads
 from src.shared.llm.factory import get_llm_provider
 from src.shared.llm.policy import validate_llm_provider
@@ -33,6 +33,7 @@ def _to_response(run: TestRun) -> TestRunResponse:
         project_id=run.project_id,
         findings=[FindingItem(**item) if isinstance(item, dict) else item for item in (findings_data.get("findings") or [])],
         summary=run.summary or "",
+        summary_details=findings_data.get("summary_details") or {},
         overall_score=run.overall_score or 0.0,
         scorecard=[ScorecardEntry(**item) if isinstance(item, dict) else item for item in (findings_data.get("scorecard") or [])],
         risks=[RiskEntry(**item) if isinstance(item, dict) else item for item in (findings_data.get("risks") or [])],
@@ -44,13 +45,24 @@ def _to_response(run: TestRun) -> TestRunResponse:
             compliance_score=compliance_raw.get("compliance_score", 10.0),
             confidence=compliance_raw.get("confidence", 1.0),
             visual_evidence_fingerprint=compliance_raw.get("visual_evidence_fingerprint", ""),
+            visual_evidence_refs=compliance_raw.get("visual_evidence_refs", []),
+            rejected_visual_evidence_refs=compliance_raw.get("rejected_visual_evidence_refs", []),
+            visual_traceability_status=compliance_raw.get("visual_traceability_status", "not_used"),
+            traceability_notes=compliance_raw.get("traceability_notes", []),
         ),
         final_recommendation=run.final_recommendation or "",
         final_recommendation_confidence=recommendation_details.get("confidence_score", 1.0),
         final_recommendation_rationale=recommendation_details.get("rationale", ""),
         final_recommendation_actions=recommendation_details.get("top_actions", []),
+        final_recommendation_visual_evidence_refs=recommendation_details.get("visual_evidence_refs", []),
+        final_recommendation_visual_traceability_status=recommendation_details.get(
+            "visual_traceability_status", "not_used"
+        ),
         visual_context=findings_data.get("visual_context"),
         visual_evidence=findings_data.get("visual_evidence"),
+        visual_evidence_trace=findings_data.get("visual_evidence_trace"),
+        visual_traceability_status=findings_data.get("visual_traceability_status", "not_applicable"),
+        unresolved_visual_finding_count=findings_data.get("unresolved_visual_finding_count", 0),
         created_at=run.created_at,
         completed_at=run.completed_at,
     )
@@ -70,6 +82,10 @@ def _findings_to_json(
     brandbook_compliance=None,
     visual_context=None,
     visual_evidence=None,
+    visual_evidence_trace=None,
+    visual_traceability_status="not_applicable",
+    unresolved_visual_finding_count=0,
+    summary_details=None,
     final_recommendation_details=None,
 ) -> str:
     data = {
@@ -80,6 +96,10 @@ def _findings_to_json(
                 "explanation": _value(item, "explanation"),
                 "confidence": _value(item, "confidence", 1.0),
                 "evidence_notes": _value(item, "evidence_notes", []),
+                "visual_evidence_refs": _value(item, "visual_evidence_refs", []),
+                "rejected_visual_evidence_refs": _value(item, "rejected_visual_evidence_refs", []),
+                "visual_traceability_status": _value(item, "visual_traceability_status", "not_used"),
+                "traceability_notes": _value(item, "traceability_notes", []),
             }
             for item in (findings or [])
         ],
@@ -92,6 +112,11 @@ def _findings_to_json(
                 "confidence": _value(item, "confidence", 1.0),
                 "evidence_notes": _value(item, "evidence_notes", []),
                 "visual_evidence_fingerprint": _value(item, "visual_evidence_fingerprint"),
+                "evidence_scope": _value(item, "evidence_scope", "non_visual"),
+                "visual_evidence_refs": _value(item, "visual_evidence_refs", []),
+                "rejected_visual_evidence_refs": _value(item, "rejected_visual_evidence_refs", []),
+                "visual_traceability_status": _value(item, "visual_traceability_status", "not_used"),
+                "traceability_notes": _value(item, "traceability_notes", []),
             }
             for item in (scorecard or [])
         ],
@@ -104,6 +129,11 @@ def _findings_to_json(
                 "confidence": _value(item, "confidence", 1.0),
                 "provenance": _value(item, "provenance", []),
                 "visual_evidence_fingerprint": _value(item, "visual_evidence_fingerprint"),
+                "evidence_scope": _value(item, "evidence_scope", "non_visual"),
+                "visual_evidence_refs": _value(item, "visual_evidence_refs", []),
+                "rejected_visual_evidence_refs": _value(item, "rejected_visual_evidence_refs", []),
+                "visual_traceability_status": _value(item, "visual_traceability_status", "not_used"),
+                "traceability_notes": _value(item, "traceability_notes", []),
             }
             for item in (risks or [])
         ],
@@ -118,11 +148,20 @@ def _findings_to_json(
                 "confidence": _value(item, "confidence", 1.0),
                 "visual_evidence_status": _value(item, "visual_evidence_status", "not_applicable"),
                 "visual_evidence_fingerprint": _value(item, "visual_evidence_fingerprint"),
+                "evidence_scope": _value(item, "evidence_scope", "non_visual"),
+                "visual_evidence_refs": _value(item, "visual_evidence_refs", []),
+                "rejected_visual_evidence_refs": _value(item, "rejected_visual_evidence_refs", []),
+                "visual_traceability_status": _value(item, "visual_traceability_status", "not_used"),
+                "traceability_notes": _value(item, "traceability_notes", []),
             }
             for item in (audience_reactions or [])
         ],
+        "summary_details": summary_details or {},
         "visual_context": visual_context,
         "visual_evidence": visual_evidence,
+        "visual_evidence_trace": visual_evidence_trace,
+        "visual_traceability_status": visual_traceability_status,
+        "unresolved_visual_finding_count": unresolved_visual_finding_count,
         "final_recommendation_details": final_recommendation_details or {},
     }
     if brandbook_compliance:
@@ -194,7 +233,7 @@ def run_test_run(run_id: str, audit_writer=None) -> TestRunResponse:
         rubric_id = run.rubric_id
 
     try:
-        result = run_pipeline(
+        result = run_traceable_pipeline(
             creative_asset_id=creative_asset_id,
             brand_profile_id=brand_profile_id,
             audience_profile_ids=audience_profile_ids,
@@ -212,6 +251,10 @@ def run_test_run(run_id: str, audit_writer=None) -> TestRunResponse:
                 brandbook_compliance=result.get("brandbook_compliance"),
                 visual_context=result.get("visual_context"),
                 visual_evidence=result.get("visual_evidence"),
+                visual_evidence_trace=result.get("visual_evidence_trace"),
+                visual_traceability_status=result.get("visual_traceability_status", "not_applicable"),
+                unresolved_visual_finding_count=result.get("unresolved_visual_finding_count", 0),
+                summary_details=result.get("summary_details"),
                 final_recommendation_details=result.get("final_recommendation_details"),
             )
             fresh.summary = result["summary"]
@@ -227,6 +270,8 @@ def run_test_run(run_id: str, audit_writer=None) -> TestRunResponse:
                     "findings_count": len(result["findings"]),
                     "final_recommendation": result["final_recommendation"],
                     "visual_evidence_confidence": result.get("visual_evidence_confidence"),
+                    "visual_traceability_status": result.get("visual_traceability_status"),
+                    "unresolved_visual_finding_count": result.get("unresolved_visual_finding_count", 0),
                 })
             return _to_response(fresh)
 

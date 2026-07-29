@@ -14,9 +14,10 @@ Criteria:
 
 Calibration rules:
 - `null` means unobserved/unassessed, not absent; only `presence: "absent"` proves assessed absence.
+- The `references` registry contains the only valid IDs for visual observations.
 - Score creative execution from available evidence; represent extraction gaps in criterion confidence, not as automatic score penalties.
-- Use only populated visual observations and their provenance.
-- Separate awareness/recall from consideration/purchase motivation.
+- Every visual or mixed criterion rationale must cite exact `reference_id` values from populated observations.
+- Set `evidence_scope` to `non_visual` and return [] when a criterion relies only on copy, brief, audience or brand context.
 - A logo, packshot, bright palette, discount or CTA is not automatic effectiveness.
 - Do not infer causal lift, percentage-point uplift or real respondent behavior.
 - Higher always means better for every averaged criterion.
@@ -24,7 +25,9 @@ Calibration rules:
 Anchors: 1-3 material failure; 4-6 partial/ambiguous; 7-8 strong with limitations; 9-10 exceptional and evidenced.
 
 Respond in JSON with exactly these fields:
-- "scorecard": objects with "criterion", "score", "rationale", "recommendation", "confidence" (0-1)
+- "scorecard": objects with "criterion", "score", "rationale", "recommendation", "confidence" (0-1), "evidence_scope", "visual_evidence_refs"
 - "overall_score": arithmetic average, not predicted market lift
 - "strengths": strongest criteria
 - "weaknesses": criteria needing improvement
+
+For each scorecard object, `evidence_scope` is "non_visual", "visual", or "mixed". `visual_evidence_refs` must contain exact registry IDs for visual/mixed rationales and must be [] for non-visual rationales.

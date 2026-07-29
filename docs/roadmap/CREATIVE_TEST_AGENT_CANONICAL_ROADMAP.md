@@ -1,6 +1,6 @@
 # Creative Test Agent — каноническая дорожная карта
 
-Версия: 1.2  
+Версия: 1.3  
 Дата фиксации: 2026-07-29  
 Статус документа: canonical / single source of truth
 
@@ -175,7 +175,32 @@
   - regression tests подтверждают использование visual context;
   - confidence снижается при плохом extraction без автоматического снижения creative score.
 
-### 14. CTA-OZON-001 — Ozon Showcase Data Loader
+### 14. CTA-VIS-004 — Visual Evidence Traceability
+
+- Статус: `DONE`
+- Контур: `GITHUB`
+- Зависит от: CTA-VIS-003
+- Результат: каждое populated visual observation получает детерминированный integrity-checked reference ID; визуальные findings связываются с конкретными observation snapshots, confidence и provenance; unknown, stale и criterion-unrelated references отклоняются; unsupported/unassessed visual conclusions fail closed без автоматического изменения legacy score.
+- Scope:
+  - reference registry в `VisualEvidenceEnvelope` v1.1;
+  - creative summary;
+  - audience simulation;
+  - rubric findings;
+  - brand-safety risks;
+  - brandbook-compliance violations;
+  - final recommendation;
+  - persisted trace manifest и API.
+- Acceptance:
+  - unassessed `null` fields не получают references;
+  - assessed absence остаётся citable observation;
+  - каждый accepted visual finding имеет валидный relevant reference;
+  - invalid references сохраняются отдельно для audit и не принимаются как evidence;
+  - visual finding без валидного reference получает zero diagnostic confidence и явный unsupported/unassessed status;
+  - score не снижается автоматически только из-за missing extraction;
+  - trace manifest воспроизводим и сохраняется без DB migration;
+  - regression tests и CI проходят.
+
+### 15. CTA-OZON-001 — Ozon Showcase Data Loader
 
 - Статус: `PLANNED`
 - Контур: `HYBRID`
@@ -193,11 +218,11 @@
   - повторный запуск не создаёт дубликаты;
   - uncertain linkage не превращается в exact.
 
-### 15. CTA-OZON-002 — Ozon Campaign Evidence Workspace
+### 16. CTA-OZON-002 — Ozon Campaign Evidence Workspace
 
 - Статус: `PLANNED`
 - Контур: `HYBRID`
-- Зависит от: CTA-OZON-001, CTA-VIS-003
+- Зависит от: CTA-OZON-001, CTA-VIS-004
 - Цель: показать в UI связку campaign → creative set → CG/TG outcomes → agent diagnostics.
 - Scope:
   - campaign cards;
@@ -211,11 +236,11 @@
   - Relief, Triderm и multi-asset cases имеют явные ограничения;
   - browser smoke test проходит локально.
 
-### 16. CTA-REPORT-002 — Evidence-Bound Client Report v2
+### 17. CTA-REPORT-002 — Evidence-Bound Client Report v2
 
 - Статус: `PLANNED`
 - Контур: `HYBRID`
-- Зависит от: CTA-VIS-003, CTA-OZON-002
+- Зависит от: CTA-VIS-004, CTA-OZON-002
 - Цель: сформировать основной клиентский отчёт пилота.
 - Обязательные слои:
   1. наблюдаемые факты;
@@ -236,7 +261,7 @@
   - missing values не заполняются догадками;
   - визуальная проверка PPTX/DOCX выполнена локально.
 
-### 17. CTA-DEMO-001 — Ozon End-to-End Client Demo
+### 18. CTA-DEMO-001 — Ozon End-to-End Client Demo
 
 - Статус: `PLANNED`
 - Контур: `HYBRID`
@@ -255,7 +280,7 @@
   - real-data smoke test проходит локально;
   - demo script и operator checklist готовы.
 
-### 18. CTA-DATA-002 — Client Calibration Data Request Pack
+### 19. CTA-DATA-002 — Client Calibration Data Request Pack
 
 - Статус: `PLANNED`
 - Контур: `GITHUB`
@@ -278,7 +303,7 @@
 
 ## Блок C. Экспертная калибровка
 
-### 19. CTA-REVIEW-001 — Finding-Level Expert Review
+### 20. CTA-REVIEW-001 — Finding-Level Expert Review
 
 - Статус: `PLANNED`
 - Контур: `HYBRID`
@@ -303,7 +328,7 @@
   - исходный системный finding не перезаписывается;
   - usability проверена локально.
 
-### 20. CTA-REVIEW-002 — Independent Review Adjudication
+### 21. CTA-REVIEW-002 — Independent Review Adjudication
 
 - Статус: `PLANNED`
 - Контур: `HYBRID`
@@ -315,7 +340,7 @@
   - adjudication требует adjudicator и rationale;
   - клиент утверждает процесс adjudication.
 
-### 21. CTA-CAL-003 — Calibration Quality Dashboard
+### 22. CTA-CAL-003 — Calibration Quality Dashboard
 
 - Статус: `PLANNED`
 - Контур: `HYBRID`
@@ -339,7 +364,7 @@
 
 ## Блок D. Локальные модели и целевая инфраструктура
 
-### 22. CTA-BENCH-002 — Target Hardware OCR/VLM Benchmark
+### 23. CTA-BENCH-002 — Target Hardware OCR/VLM Benchmark
 
 - Статус: `BLOCKED_LOCAL`
 - Контур: `LOCAL_IDE`
@@ -356,7 +381,7 @@
   - зафиксированы extraction quality, hallucination, abstention, repeatability, latency и ресурсы;
   - выбран кандидат или зафиксировано отсутствие приемлемого кандидата.
 
-### 23. CTA-MODEL-001 — Production Local Model Profile
+### 24. CTA-MODEL-001 — Production Local Model Profile
 
 - Статус: `BLOCKED_LOCAL`
 - Контур: `HYBRID`
@@ -382,7 +407,7 @@
 
 ## Блок E. Controlled pilot
 
-### 24. CTA-PILOT-002 — Real Case Intake and Data Quality Gate
+### 25. CTA-PILOT-002 — Real Case Intake and Data Quality Gate
 
 - Статус: `BLOCKED_CLIENT`
 - Контур: `CLIENT + HYBRID`
@@ -394,7 +419,7 @@
   - excluded/deferred cases имеют причину;
   - исходные материалы остаются локальными.
 
-### 25. CTA-PILOT-003 — Frozen Blind Diagnostic Run
+### 26. CTA-PILOT-003 — Frozen Blind Diagnostic Run
 
 - Статус: `BLOCKED_CLIENT`
 - Контур: `HYBRID`
@@ -405,7 +430,7 @@
   - повторный запуск не заменяет frozen output;
   - outcome leakage исключён процедурно.
 
-### 26. CTA-PILOT-004 — Independent Expert Review Execution
+### 27. CTA-PILOT-004 — Independent Expert Review Execution
 
 - Статус: `BLOCKED_CLIENT`
 - Контур: `CLIENT`
@@ -416,7 +441,7 @@
   - omissions фиксируются как human-added;
   - disagreements adjudicated или явно pending.
 
-### 27. CTA-PILOT-005 — Provenance-Bound Outcome Linkage
+### 28. CTA-PILOT-005 — Provenance-Bound Outcome Linkage
 
 - Статус: `BLOCKED_CLIENT`
 - Контур: `HYBRID`
@@ -428,7 +453,7 @@
   - causal_interpretation_allowed=false;
   - missing outcomes остаются missing.
 
-### 28. CTA-PILOT-006 — Controlled Pilot Calibration Summary
+### 29. CTA-PILOT-006 — Controlled Pilot Calibration Summary
 
 - Статус: `PLANNED`
 - Контур: `GITHUB + HYBRID`
@@ -443,7 +468,7 @@
 
 ## Блок F. Методология v2 и пороги
 
-### 29. CTA-METH-001 — Agent Error Taxonomy
+### 30. CTA-METH-001 — Agent Error Taxonomy
 
 - Статус: `PLANNED`
 - Контур: `GITHUB + HYBRID`
@@ -459,7 +484,7 @@
   - reviewer disagreement.
 - Acceptance: все существенные ошибки пилота отнесены к воспроизводимой taxonomy.
 
-### 30. CTA-METH-002 — Diagnostic Methodology v2
+### 31. CTA-METH-002 — Diagnostic Methodology v2
 
 - Статус: `PLANNED`
 - Контур: `GITHUB + CLIENT`
@@ -470,7 +495,7 @@
   - regression pack обновлён;
   - методология подписана владельцем методологии и техническим владельцем.
 
-### 31. CTA-METH-003 — Decision Threshold Sign-Off
+### 32. CTA-METH-003 — Decision Threshold Sign-Off
 
 - Статус: `BLOCKED_CLIENT`
 - Контур: `CLIENT`
@@ -490,7 +515,7 @@
 
 ## Блок G. On-premise pilot release
 
-### 32. CTA-DEPLOY-001 — Client On-Premise Installation
+### 33. CTA-DEPLOY-001 — Client On-Premise Installation
 
 - Статус: `BLOCKED_LOCAL`
 - Контур: `LOCAL_IDE`
@@ -505,7 +530,7 @@
   - local smoke tests.
 - Acceptance: приложение запускается без внешних API и обслуживает согласованное число пользователей.
 
-### 33. CTA-SEC-001 — Isolation, Audit and Recovery Acceptance
+### 34. CTA-SEC-001 — Isolation, Audit and Recovery Acceptance
 
 - Статус: `BLOCKED_LOCAL`
 - Контур: `LOCAL_IDE + CLIENT`
@@ -517,7 +542,7 @@
   - backup/restore rehearsal выполнена на целевой машине;
   - клиент принял security checklist.
 
-### 34. CTA-RELEASE-001 — Controlled Pilot Release Candidate
+### 35. CTA-RELEASE-001 — Controlled Pilot Release Candidate
 
 - Статус: `PLANNED`
 - Контур: `HYBRID`
@@ -552,11 +577,11 @@
 
 # Ближайшая контрольная точка
 
-Первая ближайшая контрольная точка достигается после задач CTA-VIS-002 → CTA-VIS-003 → CTA-OZON-001 → CTA-OZON-002 → CTA-REPORT-002 → CTA-DEMO-001.
+Первая ближайшая контрольная точка достигается после задач CTA-VIS-002 → CTA-VIS-003 → CTA-VIS-004 → CTA-OZON-001 → CTA-OZON-002 → CTA-REPORT-002 → CTA-DEMO-001.
 
 Критерий контрольной точки:
 
-> На локальной машине открыт Ozon showcase project; для выбранной кампании видны исходный креатив, извлечённые визуальные признаки, funnel-aware диагностика, фактические CG/TG outcomes, качество linkage, ограничения и скачиваемый evidence-bound отчёт.
+> На локальной машине открыт Ozon showcase project; для выбранной кампании видны исходный креатив, извлечённые визуальные признаки, traceable funnel-aware диагностика, фактические CG/TG outcomes, качество linkage, ограничения и скачиваемый evidence-bound отчёт.
 
 # Следующая задача
 

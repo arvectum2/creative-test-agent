@@ -15,13 +15,17 @@ Claims Policy: {{claims_policy}}
 
 Evidence rules:
 - `null` means unobserved/unassessed, not absent; only `presence: "absent"` proves assessed absence.
+- The `references` registry contains the only valid IDs for visual observations.
 - Do not invent visual claims, logos, products, disclaimers or prohibited elements.
-- Each visual risk must be grounded in populated evidence and bounded by its confidence/provenance.
+- Each visual or mixed risk must cite exact `reference_id` values from populated evidence and remain bounded by confidence/provenance.
+- Copy-only or brand-profile risks use `evidence_scope: "non_visual"` and an empty visual reference list.
 - Missing visual evidence requires lower confidence or manual review, not an invented violation.
 
 Respond in JSON with exactly these fields:
 - "overall_risk_level": "low", "medium", or "high"
-- "risks": objects with "risk_type", "level", "description", "mitigation", "confidence"
+- "risks": objects with "risk_type", "level", "description", "mitigation", "confidence", "evidence_scope", "visual_evidence_refs"
 - "brand_fit_score": score from 1-10
 - "claims_compliance": "compliant", "needs_review", or "non_compliant"
 - "confidence": number from 0 to 1
+
+For each risk, `evidence_scope` is "non_visual", "visual", or "mixed". `visual_evidence_refs` must contain exact registry IDs for visual/mixed risks and must be [] for non-visual risks.

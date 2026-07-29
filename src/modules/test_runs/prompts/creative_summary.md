@@ -10,9 +10,12 @@ Canonical Visual Evidence (the identical evidence model is supplied to every ana
 Evidence rules:
 - `null` means unobserved or unassessed, never absent.
 - Only an observation with `presence: "absent"` is an assessed absence.
+- The `references` registry contains the only valid IDs for visual observations.
+- Any visual statement must cite one or more exact `reference_id` values; never invent, shorten or reuse an ID from another asset.
 - Use confidence and provenance when relying on a visual observation.
 - When `status` is `missing` or `limited`, lower diagnostic confidence and state the limitation; do not lower creative quality merely because extraction is incomplete.
 - Never infer a logo, packshot, CTA, promo badge, hierarchy, readability, cognitive load or message–visual binding that is not populated.
+- Set `evidence_scope` to `non_visual` when the summary relies only on copy; then `visual_evidence_refs` must be empty.
 
 Analyze the communication chain: brand → problem/category → benefit → product/proof → CTA, plus visual hierarchy where evidenced.
 
@@ -22,3 +25,5 @@ Respond in JSON with exactly these fields:
 - "tone": emotional tone
 - "target_audience_vibe": apparent target based only on supplied evidence
 - "confidence": number from 0 to 1 reflecting evidence completeness, not certainty of market lift
+- "evidence_scope": "non_visual", "visual", or "mixed"
+- "visual_evidence_refs": exact reference IDs used for visual statements, otherwise []

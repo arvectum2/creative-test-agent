@@ -18,6 +18,10 @@ class FindingItem(BaseModel):
     explanation: str
     confidence: float = 1.0
     evidence_notes: list[str] = Field(default_factory=list)
+    visual_evidence_refs: list[str] = Field(default_factory=list)
+    rejected_visual_evidence_refs: list[str] = Field(default_factory=list)
+    visual_traceability_status: str = "not_used"
+    traceability_notes: list[str] = Field(default_factory=list)
 
 
 class ScorecardEntry(BaseModel):
@@ -28,6 +32,11 @@ class ScorecardEntry(BaseModel):
     confidence: float = 1.0
     evidence_notes: list[str] = Field(default_factory=list)
     visual_evidence_fingerprint: str = ""
+    evidence_scope: str = "non_visual"
+    visual_evidence_refs: list[str] = Field(default_factory=list)
+    rejected_visual_evidence_refs: list[str] = Field(default_factory=list)
+    visual_traceability_status: str = "not_used"
+    traceability_notes: list[str] = Field(default_factory=list)
 
 
 class RiskEntry(BaseModel):
@@ -38,6 +47,11 @@ class RiskEntry(BaseModel):
     confidence: float = 1.0
     provenance: list[dict] = Field(default_factory=list)
     visual_evidence_fingerprint: str = ""
+    evidence_scope: str = "non_visual"
+    visual_evidence_refs: list[str] = Field(default_factory=list)
+    rejected_visual_evidence_refs: list[str] = Field(default_factory=list)
+    visual_traceability_status: str = "not_used"
+    traceability_notes: list[str] = Field(default_factory=list)
 
 
 class AudienceReaction(BaseModel):
@@ -50,12 +64,22 @@ class AudienceReaction(BaseModel):
     confidence: float = 1.0
     visual_evidence_status: str = "not_applicable"
     visual_evidence_fingerprint: str = ""
+    evidence_scope: str = "non_visual"
+    visual_evidence_refs: list[str] = Field(default_factory=list)
+    rejected_visual_evidence_refs: list[str] = Field(default_factory=list)
+    visual_traceability_status: str = "not_used"
+    traceability_notes: list[str] = Field(default_factory=list)
 
 
 class ComplianceViolation(BaseModel):
     rule: str = ""
     severity: str = ""
     details: str = ""
+    evidence_scope: str = "non_visual"
+    visual_evidence_refs: list[str] = Field(default_factory=list)
+    rejected_visual_evidence_refs: list[str] = Field(default_factory=list)
+    visual_traceability_status: str = "not_used"
+    traceability_notes: list[str] = Field(default_factory=list)
 
 
 class BrandbookCompliance(BaseModel):
@@ -65,6 +89,10 @@ class BrandbookCompliance(BaseModel):
     compliance_score: float = 10.0
     confidence: float = 1.0
     visual_evidence_fingerprint: str = ""
+    visual_evidence_refs: list[str] = Field(default_factory=list)
+    rejected_visual_evidence_refs: list[str] = Field(default_factory=list)
+    visual_traceability_status: str = "not_used"
+    traceability_notes: list[str] = Field(default_factory=list)
 
 
 class TestRunResponse(BaseModel):
@@ -78,6 +106,7 @@ class TestRunResponse(BaseModel):
     project_id: str | None = None
     findings: list[FindingItem]
     summary: str = ""
+    summary_details: dict = Field(default_factory=dict)
     overall_score: float = 0.0
     scorecard: list[ScorecardEntry] = Field(default_factory=list)
     risks: list[RiskEntry] = Field(default_factory=list)
@@ -87,7 +116,12 @@ class TestRunResponse(BaseModel):
     final_recommendation_confidence: float = 1.0
     final_recommendation_rationale: str = ""
     final_recommendation_actions: list[str] = Field(default_factory=list)
+    final_recommendation_visual_evidence_refs: list[str] = Field(default_factory=list)
+    final_recommendation_visual_traceability_status: str = "not_used"
     visual_context: dict | None = None
     visual_evidence: dict | None = None
+    visual_evidence_trace: dict | None = None
+    visual_traceability_status: str = "not_applicable"
+    unresolved_visual_finding_count: int = 0
     created_at: datetime
     completed_at: datetime | None = None
