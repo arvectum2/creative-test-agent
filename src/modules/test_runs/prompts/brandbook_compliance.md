@@ -20,6 +20,7 @@ Evidence rules:
 - Every visual or mixed violation must cite exact `reference_id` values; never invent, shorten or reuse IDs from another asset.
 - Missing or low-confidence visual evidence lowers compliance confidence and may require manual review, but is not itself non-compliance.
 - Preserve provenance and distinguish copy-based from visual findings.
+- Report confidence honestly. A deterministic post-processing policy will accept, route to manual review, or abstain; do not inflate confidence or use wording to bypass that gate.
 
 Respond in JSON with exactly these fields:
 - "overall_verdict": "compliant", "needs_revision", or "non_compliant"

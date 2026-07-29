@@ -376,13 +376,15 @@ Key capabilities:
 - Optional local VLM via Ollama (`CTA_VISION_PROVIDER=local_vlm`).
 - Combined hybrid mode (`CTA_VISION_PROVIDER=hybrid`).
 - Visual context integrated into test run workflows and reports.
+- Integrity-checked finding-level visual evidence traceability.
+- Versioned confidence and abstention policy with manual-review and release gates.
 - Image preview endpoint with path traversal protection.
 - Dedicated `/vision/health` endpoint.
 - Full closed-loop policy — cloud vision providers forbidden.
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md), [docs/closed_loop_requirements.md](docs/closed_loop_requirements.md), [docs/mvp_scope.md](docs/mvp_scope.md), [docs/local_llm_setup.md](docs/local_llm_setup.md), [docs/local_vision_setup.md](docs/local_vision_setup.md), [docs/file_intake.md](docs/file_intake.md), [docs/reporting.md](docs/reporting.md), [docs/local_web_ui.md](docs/local_web_ui.md), [docs/demo_pilot.md](docs/demo_pilot.md), [docs/client_pitch_summary.md](docs/client_pitch_summary.md), [docs/pilot_checklist.md](docs/pilot_checklist.md), and [docs/persistence.md](docs/persistence.md) for detailed documentation.
+See [docs/architecture.md](docs/architecture.md), [docs/closed_loop_requirements.md](docs/closed_loop_requirements.md), [docs/mvp_scope.md](docs/mvp_scope.md), [docs/local_llm_setup.md](docs/local_llm_setup.md), [docs/local_vision_setup.md](docs/local_vision_setup.md), [docs/file_intake.md](docs/file_intake.md), [docs/reporting.md](docs/reporting.md), [docs/local_web_ui.md](docs/local_web_ui.md), [docs/demo_pilot.md](docs/demo_pilot.md), [docs/client_pitch_summary.md](docs/client_pitch_summary.md), [docs/pilot_checklist.md](docs/pilot_checklist.md), [docs/persistence.md](docs/persistence.md), and [Visual Confidence and Abstention Policy](docs/vision/visual_confidence_abstention_policy.md) for detailed documentation.
 
 ## Documentation
 

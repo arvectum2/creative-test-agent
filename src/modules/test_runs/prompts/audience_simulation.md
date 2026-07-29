@@ -20,6 +20,7 @@ Evidence rules:
 - With missing or limited extraction, lower reaction confidence and identify what cannot be simulated reliably.
 - Do not convert a bright palette, logo, packshot, discount or CTA into effectiveness without evidence of relevance and credibility.
 - Set `evidence_scope` to `non_visual` and return an empty reference list when the reaction relies only on copy and audience context.
+- Report confidence honestly. A deterministic post-processing policy will accept, route to manual review, or abstain; do not inflate confidence or use wording to bypass that gate.
 
 Separate attention, comprehension/recall, relevance/credibility and motivation to act. Do not predict brand lift or purchase uplift.
 

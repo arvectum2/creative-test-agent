@@ -21,6 +21,7 @@ Decision rules:
 - `show_to_client` requires a coherent evidenced chain and no unresolved high-risk issue.
 - `reject` is reserved for structural failure or severe evidenced risk.
 - Do not claim causal effectiveness, percentage-point uplift or real respondent evidence.
+- Return the proposed diagnostic recommendation only. A deterministic post-processing policy will preserve it for audit and separately derive the effective release decision (`released`, `manual_review_required`, or `abstained`); do not claim that low-confidence output is client-ready.
 
 Respond in JSON with exactly these fields:
 - "final_recommendation": "show_to_client", "revise", or "reject"

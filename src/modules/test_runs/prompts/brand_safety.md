@@ -20,6 +20,7 @@ Evidence rules:
 - Each visual or mixed risk must cite exact `reference_id` values from populated evidence and remain bounded by confidence/provenance.
 - Copy-only or brand-profile risks use `evidence_scope: "non_visual"` and an empty visual reference list.
 - Missing visual evidence requires lower confidence or manual review, not an invented violation.
+- Report confidence honestly. A deterministic post-processing policy will accept, route to manual review, or abstain; do not inflate confidence or use wording to bypass that gate.
 
 Respond in JSON with exactly these fields:
 - "overall_risk_level": "low", "medium", or "high"

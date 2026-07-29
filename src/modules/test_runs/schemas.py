@@ -12,7 +12,16 @@ class CreateTestRunRequest(BaseModel):
     project_id: str | None = None
 
 
-class FindingItem(BaseModel):
+class VisualConfidenceFields(BaseModel):
+    visual_confidence_score: float | None = None
+    visual_confidence_band: str = "not_applicable"
+    visual_abstention_status: str = "not_applicable"
+    visual_abstention_reasons: list[str] = Field(default_factory=list)
+    visual_assessment_allowed: bool = True
+    visual_client_release_allowed: bool = True
+
+
+class FindingItem(VisualConfidenceFields):
     criterion: str
     score: float
     explanation: str
@@ -24,7 +33,7 @@ class FindingItem(BaseModel):
     traceability_notes: list[str] = Field(default_factory=list)
 
 
-class ScorecardEntry(BaseModel):
+class ScorecardEntry(VisualConfidenceFields):
     criterion: str
     score: float
     rationale: str = ""
@@ -39,7 +48,7 @@ class ScorecardEntry(BaseModel):
     traceability_notes: list[str] = Field(default_factory=list)
 
 
-class RiskEntry(BaseModel):
+class RiskEntry(VisualConfidenceFields):
     risk_type: str = ""
     level: str = ""
     description: str = ""
@@ -54,7 +63,7 @@ class RiskEntry(BaseModel):
     traceability_notes: list[str] = Field(default_factory=list)
 
 
-class AudienceReaction(BaseModel):
+class AudienceReaction(VisualConfidenceFields):
     audience_profile_id: str = ""
     segment_name: str = ""
     reaction: str = ""
@@ -71,7 +80,7 @@ class AudienceReaction(BaseModel):
     traceability_notes: list[str] = Field(default_factory=list)
 
 
-class ComplianceViolation(BaseModel):
+class ComplianceViolation(VisualConfidenceFields):
     rule: str = ""
     severity: str = ""
     details: str = ""
@@ -82,7 +91,7 @@ class ComplianceViolation(BaseModel):
     traceability_notes: list[str] = Field(default_factory=list)
 
 
-class BrandbookCompliance(BaseModel):
+class BrandbookCompliance(VisualConfidenceFields):
     overall_verdict: str = "compliant"
     violations: list[ComplianceViolation] = Field(default_factory=list)
     recommendations: list[str] = Field(default_factory=list)
@@ -113,6 +122,7 @@ class TestRunResponse(BaseModel):
     audience_reactions: list[AudienceReaction] = Field(default_factory=list)
     brandbook_compliance: BrandbookCompliance = Field(default_factory=BrandbookCompliance)
     final_recommendation: str = ""
+    effective_recommendation: str = ""
     final_recommendation_confidence: float = 1.0
     final_recommendation_rationale: str = ""
     final_recommendation_actions: list[str] = Field(default_factory=list)
@@ -123,5 +133,9 @@ class TestRunResponse(BaseModel):
     visual_evidence_trace: dict | None = None
     visual_traceability_status: str = "not_applicable"
     unresolved_visual_finding_count: int = 0
+    visual_confidence_policy: dict | None = None
+    visual_decision_status: str = "not_applicable"
+    visual_abstention_count: int = 0
+    visual_review_required_count: int = 0
     created_at: datetime
     completed_at: datetime | None = None

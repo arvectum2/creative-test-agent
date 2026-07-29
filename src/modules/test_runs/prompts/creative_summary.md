@@ -16,6 +16,7 @@ Evidence rules:
 - When `status` is `missing` or `limited`, lower diagnostic confidence and state the limitation; do not lower creative quality merely because extraction is incomplete.
 - Never infer a logo, packshot, CTA, promo badge, hierarchy, readability, cognitive load or message–visual binding that is not populated.
 - Set `evidence_scope` to `non_visual` when the summary relies only on copy; then `visual_evidence_refs` must be empty.
+- Report confidence honestly. A deterministic post-processing policy will accept, route to manual review, or abstain; do not inflate confidence or use wording to bypass that gate.
 
 Analyze the communication chain: brand → problem/category → benefit → product/proof → CTA, plus visual hierarchy where evidenced.
 

@@ -21,6 +21,7 @@ Calibration rules:
 - A logo, packshot, bright palette, discount or CTA is not automatic effectiveness.
 - Do not infer causal lift, percentage-point uplift or real respondent behavior.
 - Higher always means better for every averaged criterion.
+- Report confidence honestly. A deterministic post-processing policy will accept, route to manual review, or abstain; never change the score merely to compensate for missing extraction and do not inflate confidence to bypass the release gate.
 
 Anchors: 1-3 material failure; 4-6 partial/ambiguous; 7-8 strong with limitations; 9-10 exceptional and evidenced.
 
