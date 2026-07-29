@@ -61,9 +61,16 @@ def find_alias_column(index: dict[str, list[int]], aliases: Iterable[Any]) -> in
     for alias in normalized:
         if not alias:
             continue
+        alias_tokens = alias.split()
         for header, positions in index.items():
-            if alias in header or header in alias:
+            header_tokens = header.split()
+            if alias_tokens == header_tokens:
                 return positions[0]
+            if len(alias_tokens) <= len(header_tokens):
+                window_size = len(alias_tokens)
+                for start in range(len(header_tokens) - window_size + 1):
+                    if alias_tokens == header_tokens[start:start + window_size]:
+                        return positions[0]
     return None
 
 

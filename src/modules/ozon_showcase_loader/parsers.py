@@ -296,19 +296,92 @@ def _select_table(workbook, mapping):
     best = None
     best_score = -1
     scan_rows = int(mapping["workbook"].get("header_scan_rows", 30))
+
+    def _bonus(sheet):
+        name_token = normalize_token(sheet.title)
+        return 2 if any(normalize_token(pattern) in name_token for pattern in mapping["workbook"].get("sheet_name_patterns", [])) else 0
+
+    def _consider(sheet, headers, row_number, score, layout, bonus):
+        nonlocal best, best_score
+        total = score + bonus
+        if layout and total > best_score:
+            best = (sheet, row_number, headers, layout)
+            best_score = total
+
     for sheet in workbook.worksheets:
-        for row_number, row in enumerate(sheet.iter_rows(min_row=1, max_row=scan_rows, values_only=True), start=1):
+        bonus = _bonus(sheet)
+        raw = [
+            [cell for cell in row]
+            for row in sheet.iter_rows(min_row=1, max_row=scan_rows, values_only=True)
+        ]
+
+        for idx, row in enumerate(raw):
             headers = list(row)
-            if not any(value not in (None, "") for value in headers):
+            if not any(v not in (None, "") for v in headers):
                 continue
             score, layout = _score_header(headers, mapping)
-            name_token = normalize_token(sheet.title)
-            if any(normalize_token(pattern) in name_token for pattern in mapping["workbook"].get("sheet_name_patterns", [])):
-                score += 2
-            if layout and score > best_score:
-                best = (sheet, row_number, headers, layout)
-                best_score = score
+            _consider(sheet, headers, idx + 1, score, layout, bonus)
+
+        for lower in range(1, len(raw)):
+            upper = lower - 1
+            if not any(v not in (None, "") for v in raw[upper]) or not any(v not in (None, "") for v in raw[lower]):
+                continue
+            max_cols = max(len(raw[upper]), len(raw[lower]))
+            combined = []
+            for col in range(max_cols):
+                top = str(raw[upper][col]).strip() if col < len(raw[upper]) and raw[upper][col] is not None else ""
+                bot = str(raw[lower][col]).strip() if col < len(raw[lower]) and raw[lower][col] is not None else ""
+                parts = [p for p in (top, bot) if p]
+                combined.append(" ".join(parts) if parts else None)
+            score, layout = _score_header(combined, mapping)
+            wide_headers = None
+            if not layout:
+                score, layout, wide_headers = _score_wide_rows(raw, lower, scan_rows, mapping)
+            _consider(sheet, wide_headers if wide_headers else (combined if layout else raw[lower]), lower + 1, score, layout, bonus)
+
     return best if best and best_score >= int(mapping["workbook"].get("minimum_header_score", 5)) else None
+
+
+def _resolve_metric(value: str, mapping: dict) -> str | None:
+    token = normalize_token(value)
+    for metric_name, aliases in mapping["workbook"]["metrics"].items():
+        for alias in [metric_name, *aliases]:
+            if normalize_token(alias) == token:
+                return metric_name
+    return None
+
+
+def _score_wide_rows(raw, pivot_idx, scan_rows, mapping):
+    """When a row has CG/TG but no metric column, look above for metric names."""
+    aliases = mapping["workbook"]["columns"]
+    index = header_index(raw[pivot_idx])
+    has_cg = find_alias_column(index, aliases.get("cg_rate", [])) is not None
+    has_tg = find_alias_column(index, aliases.get("tg_rate", [])) is not None
+    has_metric = find_alias_column(index, aliases.get("metric", [])) is not None
+    if not (has_cg and has_tg) or has_metric:
+        return 0, None, None
+
+    for lookback in range(pivot_idx - 1, -1, -1):
+        if not any(v not in (None, "") for v in raw[lookback]):
+            continue
+        max_cols = max(len(raw[lookback]), len(raw[pivot_idx]))
+        current_metric = None
+        combined = []
+        for col in range(max_cols):
+            top = raw[lookback][col] if col < len(raw[lookback]) else None
+            bot = raw[pivot_idx][col] if col < len(raw[pivot_idx]) else None
+            top_str = str(top).strip() if top is not None else ""
+            bot_str = str(bot).strip() if bot is not None else ""
+            if top_str:
+                metric = _resolve_metric(top_str, mapping)
+                if metric:
+                    current_metric = top_str
+            combined_str = " ".join(p for p in (current_metric or "", bot_str) if p) if bot_str else (top_str or None)
+            combined.append(combined_str)
+        score, layout = _score_header(combined, mapping)
+        if layout:
+            return score, layout, combined
+    return 0, None, None
 
 
 def _score_header(headers, mapping):
