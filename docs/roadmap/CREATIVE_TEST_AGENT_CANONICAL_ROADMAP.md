@@ -1,6 +1,6 @@
 # Creative Test Agent — каноническая дорожная карта
 
-Версия: 1.1  
+Версия: 1.2  
 Дата фиксации: 2026-07-29  
 Статус документа: canonical / single source of truth
 
@@ -158,10 +158,10 @@
 
 ### 13. CTA-VIS-003 — Full-Pipeline Visual Context Propagation
 
-- Статус: `PLANNED`
+- Статус: `DONE`
 - Контур: `GITHUB`
 - Зависит от: CTA-VIS-002
-- Цель: передавать визуальный контекст во все аналитические стадии.
+- Результат: единый fingerprinted `VisualEvidenceEnvelope` строится один раз и без изменений передаётся в creative summary, audience simulation, rubric scoring, brand safety, brandbook compliance и final recommendation; canonical context, confidence, provenance, warnings и missing semantics сохраняются в test-run storage и API.
 - Scope:
   - creative summary;
   - audience simulation;
@@ -173,7 +173,7 @@
   - каждая стадия получает одинаковую evidence-модель;
   - промпты не угадывают отсутствующие признаки;
   - regression tests подтверждают использование visual context;
-  - confidence снижается при плохом extraction.
+  - confidence снижается при плохом extraction без автоматического снижения creative score.
 
 ### 14. CTA-OZON-001 — Ozon Showcase Data Loader
 
@@ -562,4 +562,4 @@
 
 К реализации первой запускается:
 
-`CTA-VIS-003 — Full-Pipeline Visual Context Propagation`.
+`CTA-OZON-001 — Ozon Showcase Data Loader`.
