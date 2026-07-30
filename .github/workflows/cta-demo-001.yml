@@ -1,0 +1,70 @@
+name: CTA-DEMO-001
+
+on:
+  pull_request:
+    paths:
+      - "src/modules/client_demo/**"
+      - "src/modules/campaign_evidence/router.py"
+      - "src/modules/campaign_evidence/ui_router.py"
+      - "src/modules/ui/templates/client_demo/**"
+      - "src/modules/ui/templates/campaign_evidence/**"
+      - "src/modules/ui/static/client_demo.css"
+      - "scripts/cta_demo_001.py"
+      - "tests/test_cta_demo_001.py"
+      - "docs/**CTA-DEMO-001**"
+      - ".github/workflows/cta-demo-001.yml"
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CTA_DATABASE_URL: sqlite:///./.ci/creative_test_agent.db
+      CTA_STORAGE_ROOT: ./.ci/storage
+      CTA_EXPORTS_ROOT: ./.ci/exports
+      CTA_BACKUP_ROOT: ./.ci/backups
+      CTA_LOCAL_ONLY_MODE: "true"
+      CTA_HOST: 127.0.0.1
+      CTA_PUBLIC_BASE_URL: http://localhost:8000
+      CTA_TRUSTED_HOSTS: localhost,127.0.0.1,test,testserver
+      CTA_ALLOW_CLOUD_LLM: "false"
+      CTA_LLM_PROVIDER: stub
+      CTA_VISION_PROVIDER: stub
+      CTA_ENABLE_AUTH: "false"
+      CTA_SECURITY_FAIL_CLOSED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip --quiet
+          python -m pip install -e ".[dev]" --quiet
+      - name: Compile
+        run: python -m compileall -q src scripts
+      - name: Run CTA-DEMO-001 tests
+        run: python -m pytest tests/test_cta_demo_001.py -q
+      - name: Build deterministic synthetic E2E bundle
+        run: |
+          rm -rf .ci/cta-demo-001
+          python scripts/cta_demo_001.py self-test --output .ci/cta-demo-001
+          python scripts/cta_demo_001.py validate --input .ci/cta-demo-001
+          python scripts/cta_demo_001.py check-determinism
+          test -f .ci/cta-demo-001/cta_demo_001_manifest.json
+          test -f .ci/cta-demo-001/cta_demo_001_operator_checklist.md
+          test -f .ci/cta-demo-001/report_v2/client_report_v2_full.pptx
+          test -f .ci/cta-demo-001/report_v2/report_manifest.json
+      - name: Upload synthetic acceptance bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: cta-demo-001-acceptance
+          path: .ci/cta-demo-001
+          retention-days: 14

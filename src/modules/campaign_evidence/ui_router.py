@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
+from src.modules.client_demo.ui_router import router as client_demo_ui_router
 from src.modules.ui.router import _error, _render
 from src.shared.errors import AppError
 
@@ -10,6 +11,7 @@ from .service import get_campaign_evidence_detail, get_campaign_evidence_workspa
 
 
 router = APIRouter()
+router.include_router(client_demo_ui_router)
 CAMPAIGN_EVIDENCE_CSS = Path(__file__).parents[1] / "ui" / "static" / "campaign_evidence.css"
 
 

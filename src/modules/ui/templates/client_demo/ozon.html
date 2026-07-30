@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}CTA-DEMO-001 — {{ demo.project_name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/client-demo.css?v=1">
+<div class="breadcrumbs">
+  <a href="/ui">Dashboard</a> &gt;
+  <a href="/ui/projects/{{ demo.project_id }}">{{ demo.project_name }}</a> &gt;
+  <a href="/ui/projects/{{ demo.project_id }}/campaign-evidence">Campaign Evidence</a> &gt;
+  Client Demo
+</div>
+
+<div class="page-header demo-header">
+  <div>
+    <div class="campaign-case-id">CTA-DEMO-001</div>
+    <h1>Ozon End-to-End Client Demo</h1>
+    <p class="evidence-subtitle">showcase project → campaign → creative → visual extraction → diagnostics → CG/TG → report</p>
+  </div>
+  <span class="demo-readiness demo-readiness-{{ 'ready' if demo.demo_ready else 'limited' }}">
+    {{ 'Demo path ready' if demo.demo_ready else 'Demo path has blocking gaps' }}
+  </span>
+</div>
+
+<div class="alert alert-info evidence-boundary">
+  <strong>Evidence boundary:</strong> visual extraction and agent diagnostics are asset-level model evidence; CG/TG rows are factual campaign-level observations. Their adjacency is for comparison only and does not establish causality or individual-asset attribution.
+</div>
+
+<section class="card demo-control-card">
+  <form method="GET" action="/ui/projects/{{ demo.project_id }}/campaign-evidence/demo" class="demo-campaign-form">
+    <label for="campaign_id"><strong>Campaign for the demonstration</strong></label>
+    <select id="campaign_id" name="campaign_id">
+      {% for option in demo.campaign_options %}
+      <option value="{{ option.campaign_id }}" {% if option.campaign_id == demo.selected_campaign_id %}selected{% endif %}>
+        {{ option.case_id }} · {{ option.label }} · {{ option.status }}
+      </option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-secondary" type="submit">Load campaign</button>
+  </form>
+  <div class="demo-option-note">
+    {% for option in demo.campaign_options %}
+      {% if option.campaign_id == demo.selected_campaign_id %}<strong>{{ option.reason }}</strong>{% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<nav class="demo-step-nav" aria-label="Demo steps">
+  {% for step in demo.steps %}
+  <a href="#step-{{ step.ordinal }}" class="demo-step-chip demo-step-{{ step.status }}">
+    <span>{{ step.ordinal }}</span>{{ step.title }}
+  </a>
+  {% endfor %}
+</nav>
+
+<section id="step-1" class="card demo-section">
+  <div class="demo-section-heading">
+    <div><span class="demo-step-number">1</span><h2>Открыть showcase-проект</h2></div>
+    <span class="badge demo-status-{{ demo.steps[0].status }}">{{ demo.steps[0].status }}</span>
+  </div>
+  <p class="demo-operator-prompt">{{ demo.steps[0].operator_prompt }}</p>
+  <div class="status-grid">
+    <div class="status-item"><div class="label">Project</div><div class="value demo-text-value">{{ demo.project_name }}</div></div>
+    <div class="status-item"><div class="label">Selected case</div><div class="value">{{ demo.selected_case_id }}</div></div>
+    <div class="status-item"><div class="label">Campaigns available</div><div class="value">{{ demo.campaign_options|length }}</div></div>
+    <div class="status-item"><div class="label">Local evidence chain</div><div class="value">ON</div></div>
+  </div>
+  <div class="demo-evidence-refs">{% for ref in demo.steps[0].evidence_references %}<code>{{ ref }}</code>{% endfor %}</div>
+</section>
+
+<section id="step-2" class="card demo-section">
+  <div class="demo-section-heading">
+    <div><span class="demo-step-number">2</span><h2>Выбрать кампанию</h2></div>
+    <span class="badge demo-status-{{ demo.steps[1].status }}">{{ demo.steps[1].status }}</span>
+  </div>
+  <p class="demo-operator-prompt">{{ demo.steps[1].operator_prompt }}</p>
+  <div class="detail-grid">
+    <div class="detail-field"><span class="field-label">Case ID</span><div class="field-value"><code>{{ demo.selected_campaign.case_id }}</code></div></div>
+    <div class="detail-field"><span class="field-label">Brand / product</span><div class="field-value">{{ demo.selected_campaign.brand or demo.selected_campaign.product or '—' }}</div></div>
+    <div class="detail-field"><span class="field-label">Platform</span><div class="field-value">{{ demo.selected_campaign.platform or 'missing' }}</div></div>
+    <div class="detail-field"><span class="field-label">Period</span><div class="field-value">{{ demo.selected_campaign.period_start or 'missing' }} — {{ demo.selected_campaign.period_end or 'missing' }}</div></div>
+  </div>
+  {% if demo.selected_campaign.limitations %}
+  <div class="limitation-list demo-limitations">
+    {% for limitation in demo.selected_campaign.limitations %}
+    <div class="limitation-row limitation-{{ limitation.severity }}"><code>{{ limitation.code }}</code><span>{{ limitation.message }}</span></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<section id="step-3" class="card demo-section">
+  <div class="demo-section-heading">
+    <div><span class="demo-step-number">3</span><h2>Показать исходный креатив</h2></div>
+    <span class="badge demo-status-{{ demo.steps[2].status }}">{{ demo.steps[2].status }}</span>
+  </div>
+  <p class="demo-operator-prompt">{{ demo.steps[2].operator_prompt }}</p>
+  {% if demo.primary_asset %}
+  <div class="demo-creative-layout">
+    <div class="demo-creative-preview">
+      {% if demo.primary_asset.asset.preview_url %}
+      <a href="{{ demo.primary_asset.asset.preview_url }}" target="_blank" rel="noopener">
+        <img src="{{ demo.primary_asset.asset.preview_url }}" alt="{{ demo.primary_asset.asset.filename or demo.primary_asset.asset.title }}">
+      </a>
+      {% else %}<div class="empty-inline">Preview is missing.</div>{% endif %}
+    </div>
+    <div class="detail-grid demo-creative-meta">
+      <div class="detail-field"><span class="field-label">File</span><div class="field-value">{{ demo.primary_asset.asset.filename or demo.primary_asset.asset.title }}</div></div>
+      <div class="detail-field"><span class="field-label">Linkage</span><div class="field-value"><span class="badge badge-linkage-{{ demo.primary_asset.asset.linkage_status }}">{{ demo.primary_asset.asset.linkage_status }}</span> {{ '%.0f'|format(demo.primary_asset.asset.linkage_confidence * 100) }}%</div></div>
+      <div class="detail-field"><span class="field-label">Inferred platform</span><div class="field-value">{{ demo.primary_asset.asset.inferred_platform or 'missing' }}</div></div>
+      <div class="detail-field"><span class="field-label">Accepted in set</span><div class="field-value">{{ 'yes' if demo.primary_asset.asset.accepted_for_campaign_set else 'no' }}</div></div>
+    </div>
+  </div>
+  {% for note in demo.primary_asset.asset.linkage_notes %}<div class="asset-note">{{ note }}</div>{% endfor %}
+  {% else %}
+  <div class="empty-state"><h3>No creative asset</h3><p>The campaign cannot proceed through the visual demo path.</p></div>
+  {% endif %}
+</section>
+
+<section id="step-4" class="card demo-section">
+  <div class="demo-section-heading">
+    <div><span class="demo-step-number">4</span><h2>Показать visual extraction</h2></div>
+    <span class="badge demo-status-{{ demo.steps[3].status }}">{{ demo.steps[3].status }}</span>
+  </div>
+  <p class="demo-operator-prompt">{{ demo.steps[3].operator_prompt }}</p>
+  {% if demo.primary_asset %}
+  {% set visual = demo.primary_asset.visual_extraction %}
+  <div class="status-grid demo-visual-metrics">
+    <div class="status-item"><div class="label">Status</div><div class="value demo-text-value">{{ visual.status }}</div></div>
+    <div class="status-item"><div class="label">Provider</div><div class="value demo-text-value">{{ visual.provider or 'missing' }}</div></div>
+    <div class="status-item"><div class="label">Extraction confidence</div><div class="value">{{ '%.0f'|format(visual.extraction_confidence * 100) }}%</div></div>
+    <div class="status-item"><div class="label">Evidence confidence</div><div class="value">{{ '%.0f'|format(visual.evidence_confidence * 100) }}%</div></div>
+    <div class="status-item"><div class="label">Completeness</div><div class="value">{{ '%.0f'|format(visual.completeness_ratio * 100) }}%</div></div>
+    <div class="status-item"><div class="label">Traceable observations</div><div class="value">{{ visual.reference_ids|length }}</div></div>
+  </div>
+  {% if visual.observations %}
+  <div class="table-scroll">
+    <table class="demo-visual-table">
+      <tr><th>Observation</th><th>Evidence-bound value</th><th>Confidence</th><th>Reference / provenance</th></tr>
+      {% for observation in visual.observations %}
+      <tr>
+        <td><strong>{{ observation.label }}</strong><br><code>{{ observation.observation_path }}</code></td>
+        <td>{{ observation.value }}</td>
+        <td>{{ '%.0f'|format(observation.confidence * 100) }}%</td>
+        <td>
+          {% for ref in observation.evidence_reference_ids %}<code>{{ ref }}</code><br>{% endfor %}
+          {% for provenance in observation.provenance %}<small>{{ provenance }}</small><br>{% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">No canonical visual observation is available. This is a missing/unassessed state, not evidence of absence.</div>
+  {% endif %}
+  {% if visual.warnings or visual.limitations %}
+  <div class="demo-warning-stack">
+    {% for item in visual.warnings %}<div class="asset-note"><strong>Warning:</strong> {{ item }}</div>{% endfor %}
+    {% for item in visual.limitations %}<div class="asset-note"><strong>Limitation:</strong> {{ item }}</div>{% endfor %}
+  </div>
+  {% endif %}
+  <div class="demo-fingerprint"><span>Visual evidence fingerprint</span><code>{{ visual.fingerprint or 'missing' }}</code></div>
+  {% endif %}
+</section>
+
+<section id="step-5" class="card demo-section">
+  <div class="demo-section-heading">
+    <div><span class="demo-step-number">5</span><h2>Показать funnel diagnostics</h2></div>
+    <span class="badge demo-status-{{ demo.steps[4].status }}">{{ demo.steps[4].status }}</span>
+  </div>
+  <p class="demo-operator-prompt">{{ demo.steps[4].operator_prompt }}</p>
+  {% if demo.primary_asset and demo.primary_asset.asset.diagnostic.status == 'completed' %}
+  {% set diagnostic = demo.primary_asset.asset.diagnostic %}
+  <div class="detail-grid">
+    <div class="detail-field"><span class="field-label">Overall score</span><div class="field-value">{{ diagnostic.overall_score if diagnostic.overall_score is not none else '—' }}</div></div>
+    <div class="detail-field"><span class="field-label">Effective recommendation</span><div class="field-value">{{ diagnostic.effective_recommendation or '—' }}</div></div>
+    <div class="detail-field"><span class="field-label">Visual traceability</span><div class="field-value">{{ diagnostic.visual_traceability_status }}</div></div>
+    <div class="detail-field"><span class="field-label">Visual decision</span><div class="field-value">{{ diagnostic.visual_decision_status }}</div></div>
+  </div>
+  {% if diagnostic.summary %}<p class="demo-diagnostic-summary">{{ diagnostic.summary }}</p>{% endif %}
+  <div class="demo-diagnostic-columns">
+    <div>
+      <h3>Scorecard</h3>
+      {% if diagnostic.scorecard %}
+      <table class="scorecard-table"><tr><th>Criterion</th><th>Score</th><th>Rationale</th></tr>
+      {% for item in diagnostic.scorecard %}<tr><td>{{ item.get('criterion', item.get('name', '—')) }}</td><td>{{ item.get('score', '—') }}</td><td>{{ item.get('rationale', item.get('reason', '')) }}</td></tr>{% endfor %}
+      </table>{% else %}<div class="empty-inline">No scorecard rows.</div>{% endif %}
+    </div>
+    <div>
+      <h3>Findings and risks</h3>
+      <ul class="evidence-list">
+        {% for item in diagnostic.findings %}<li>{{ item.get('title', item.get('finding', item.get('explanation', item.get('message', '—')))) }}</li>{% endfor %}
+        {% for item in diagnostic.risks %}<li><strong>Risk:</strong> {{ item.get('risk', item.get('description', item.get('message', '—'))) }}</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-info">No completed diagnostic. The missing state is visible and the operator must not improvise a positive or negative conclusion.</div>
+  {% endif %}
+</section>
+
+<section id="step-6" class="card demo-section">
+  <div class="demo-section-heading">
+    <div><span class="demo-step-number">6</span><h2>Сопоставить с CG/TG</h2></div>
+    <span class="badge demo-status-{{ demo.steps[5].status }}">{{ demo.steps[5].status }}</span>
+  </div>
+  <p class="demo-operator-prompt">{{ demo.steps[5].operator_prompt }}</p>
+  <div class="alert alert-info"><strong>Descriptive only.</strong> <code>causal_interpretation_allowed=false</code>; <code>individual_asset_outcome_attribution_allowed=false</code>.</div>
+  {% if demo.selected_campaign.outcomes %}
+  <div class="table-scroll"><table class="evidence-metrics-table">
+    <tr><th>Funnel metric</th><th>CG</th><th>TG</th><th>Descriptive Δ pp</th><th>N CG/TG</th><th>Evidence ref</th></tr>
+    {% for outcome in demo.selected_campaign.outcomes %}
+    <tr>
+      <td><strong>{{ outcome.metric_label }}</strong><br><code>{{ outcome.metric }}</code></td>
+      <td>{% if outcome.cg_rate is not none %}{{ '%.1f'|format(outcome.cg_rate * 100) }}%{% else %}—{% endif %}</td>
+      <td>{% if outcome.tg_rate is not none %}{{ '%.1f'|format(outcome.tg_rate * 100) }}%{% else %}—{% endif %}</td>
+      <td>{% if outcome.uplift_pp_descriptive is not none %}{{ '%+.1f'|format(outcome.uplift_pp_descriptive) }}{% else %}—{% endif %}</td>
+      <td>{{ outcome.control_n or '—' }} / {{ outcome.test_n or '—' }}</td>
+      <td><code>{{ outcome.observation_id }}</code></td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% else %}<div class="empty-inline">No observed campaign outcomes.</div>{% endif %}
+</section>
+
+<section id="step-7" class="card demo-section">
+  <div class="demo-section-heading">
+    <div><span class="demo-step-number">7</span><h2>Скачать отчёт</h2></div>
+    <span class="badge demo-status-{{ demo.steps[6].status }}">{{ demo.steps[6].status }}</span>
+  </div>
+  <p class="demo-operator-prompt">{{ demo.steps[6].operator_prompt }}</p>
+  {% if not demo.report %}
+  <form method="POST" action="/ui/projects/{{ demo.project_id }}/campaign-evidence/demo/report" class="demo-report-form">
+    <input type="hidden" name="campaign_id" value="{{ demo.selected_campaign_id }}">
+    <label for="locale">Report language</label>
+    <select id="locale" name="locale"><option value="ru">RU</option><option value="en">EN</option></select>
+    <button class="btn btn-primary" type="submit">Generate evidence-bound report v2</button>
+  </form>
+  <p class="panel-footnote">The report is project-level. Expert findings remain <code>not_reviewed</code> until a real reviewer supplies an assessment.</p>
+  {% else %}
+  <div class="detail-grid demo-report-meta">
+    <div class="detail-field"><span class="field-label">Report ID</span><div class="field-value"><code>{{ demo.report.report_id }}</code></div></div>
+    <div class="detail-field"><span class="field-label">Version</span><div class="field-value">{{ demo.report.report_version }}</div></div>
+    <div class="detail-field"><span class="field-label">Release status</span><div class="field-value">{{ demo.report.release_status }}</div></div>
+    <div class="detail-field"><span class="field-label">Manifest SHA-256</span><div class="field-value"><code>{{ demo.report.manifest_sha256 }}</code></div></div>
+  </div>
+  <div class="demo-download-grid">
+    {% for artifact in demo.report.artifacts %}
+    <a class="btn btn-secondary" href="/campaign-evidence/reports-v2/projects/{{ demo.project_id }}/{{ demo.report.report_id }}/download?artifact={{ artifact.artifact_type }}">
+      {{ artifact.artifact_type }} · {{ artifact.size_bytes }} bytes
+    </a>
+    {% endfor %}
+    <a class="btn btn-secondary" href="/campaign-evidence/reports-v2/projects/{{ demo.project_id }}/{{ demo.report.report_id }}/download?artifact=manifest">manifest</a>
+  </div>
+  {% endif %}
+</section>
+
+<section class="card demo-stop-card">
+  <h2>Operator stop conditions</h2>
+  <ul class="evidence-list">{% for item in demo.operator_stop_conditions %}<li>{{ item }}</li>{% endfor %}</ul>
+</section>
+{% endblock %}
