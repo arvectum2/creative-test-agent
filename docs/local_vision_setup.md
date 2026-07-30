@@ -44,6 +44,7 @@ Error codes:
 | `local_vlm_disabled` | VLM requested but not enabled |
 | `hybrid_disabled` | Hybrid requested but neither OCR nor VLM enabled |
 | `unsupported_vision_provider` | Unknown provider name |
+| `unsupported_vision_api_style` | Vision API style must be `ollama` or `openai_compatible` |
 
 ## Supported Image Types
 
@@ -134,10 +135,12 @@ Returns the current vision provider status:
 ```json
 {
   "provider": "stub",
+  "api_style": "ollama",
   "local_ocr_enabled": false,
   "local_vlm_enabled": false,
   "available": true,
-  "warnings": []
+  "warnings": [],
+  "vlm_model_found": null
 }
 ```
 
@@ -192,6 +195,8 @@ Returns the asset including metadata. To view visual analysis, inspect `metadata
 
 ### Prerequisites
 
+#### Option A: Ollama
+
 1. Install Ollama: https://ollama.ai
 
 2. Pull a vision-capable model:
@@ -205,7 +210,50 @@ Returns the asset including metadata. To view visual analysis, inspect `metadata
    CTA_ENABLE_LOCAL_VLM=true
    CTA_VISION_BASE_URL=http://localhost:11434
    CTA_VISION_MODEL=qwen3-vl:8b
+   CTA_VISION_API_STYLE=ollama
    ```
+
+#### Option B: llama.cpp (OpenAI-compatible server)
+
+1. Install llama.cpp:
+   ```bash
+   brew install llama.cpp
+   ```
+
+2. Download a multimodal GGUF model + mmproj (e.g. Qwen2.5-VL-7B-Instruct):
+   ```bash
+   # model and mmproj files must be local
+   ```
+
+3. Start llama-server:
+   ```bash
+   llama-server \
+     -m /path/to/model-Q4_K_M.gguf \
+     --mmproj /path/to/mmproj-Q8_0.gguf \
+     --host 127.0.0.1 \
+     --port 8081 \
+     -c 8192 \
+     -ngl 99
+   ```
+
+4. Configure:
+   ```env
+   CTA_VISION_PROVIDER=local_vlm
+   CTA_ENABLE_LOCAL_VLM=true
+   CTA_VISION_API_STYLE=openai_compatible
+   CTA_VISION_BASE_URL=http://127.0.0.1:8081/v1
+   CTA_VISION_MODEL=<model-id-from-v1-models-endpoint>
+   CTA_VISION_TIMEOUT_SECONDS=240
+   ```
+
+### API Style
+
+The `CTA_VISION_API_STYLE` setting selects the backend format:
+
+| Value | Backend | Endpoint | Image Format |
+|-------|---------|----------|-------------|
+| `ollama` (default) | Ollama-compatible | `{base_url}/api/chat` | `images` array field |
+| `openai_compatible` | OpenAI-compatible (llama.cpp, vLLM, etc.) | `{base_url}/v1/chat/completions` | `content` parts with `image_url` |
 
 ### Behaviour
 
@@ -236,7 +284,7 @@ This system never calls:
 - Claude Vision
 - Any other cloud vision/OCR service
 
-All analysis is performed locally (stub, local OCR via Tesseract, local VLM via Ollama).
+All analysis is performed locally (stub, local OCR via Tesseract, local VLM via Ollama or llama.cpp).
 
 ## Troubleshooting
 
@@ -245,7 +293,7 @@ All analysis is performed locally (stub, local OCR via Tesseract, local VLM via 
 | `local_ocr_disabled` | OCR not enabled | Set `CTA_ENABLE_LOCAL_OCR=true` |
 | `local_ocr_unavailable` | Tesseract not installed or pytesseract not installed | Install Tesseract and `pip install pytesseract` |
 | `local_vlm_disabled` | VLM not enabled | Set `CTA_ENABLE_LOCAL_VLM=true` |
-| `local_vlm_unavailable` | Ollama not running or model not pulled | Start Ollama (`ollama serve`), pull model (`ollama pull <model>`) |
+| `local_vlm_unavailable` | VLM endpoint not configured, unreachable, or model not found | Check `CTA_VISION_BASE_URL`, `CTA_VISION_MODEL`, and that llama-server/Ollama is running |
 | `vision_stub_mode` | Default stub provider | No action needed — this is the safe default |
 | `Image file not found` | File deleted or path invalid | Re-upload the image |
 | `cloud_vision_forbidden` | Tried to use cloud provider | Only use `stub`, `local_ocr`, `local_vlm`, or `hybrid` |

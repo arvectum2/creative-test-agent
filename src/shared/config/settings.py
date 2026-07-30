@@ -32,7 +32,8 @@ class Settings(BaseSettings):
     enable_local_vlm: bool = False
     vision_model: str | None = None
     vision_base_url: str | None = None
-    vision_timeout_seconds: int = 60
+    vision_api_style: str = "ollama"
+    vision_timeout_seconds: int = 240
     run_local_vision_smoke_tests: bool = False
 
     env: str = "local"

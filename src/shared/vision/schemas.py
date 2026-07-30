@@ -361,7 +361,9 @@ class VisionResult(BaseModel):
 
 class VisionProviderHealth(BaseModel):
     provider: str = "stub"
+    api_style: str = "ollama"
     local_ocr_enabled: bool = False
     local_vlm_enabled: bool = False
     available: bool = True
     warnings: list[str] = Field(default_factory=list)
+    vlm_model_found: str | None = None
