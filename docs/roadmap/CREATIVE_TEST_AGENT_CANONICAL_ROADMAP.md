@@ -1,6 +1,6 @@
 # Creative Test Agent — каноническая дорожная карта
 
-Версия: 1.5  
+Версия: 1.6  
 Дата фиксации: 2026-07-30  
 Статус документа: canonical / single source of truth
 
@@ -286,25 +286,26 @@
 
 ### 19. CTA-DEMO-001 — Ozon End-to-End Client Demo
 
-- Статус: `PARTIAL`
+- Статус: `DONE`
 - Контур: `HYBRID`
 - Зависит от: CTA-OZON-002, CTA-REPORT-002
 - Цель: зафиксировать воспроизводимый демонстрационный сценарий.
-- Результат smoke-test (2026-07-30):
-  - Synthetic E2E CI проходит.
-  - Real-data smoke test пройден локально на Mac mini.
-  - Все 6 артефактов отчёта v2 сгенерированы и проверены по SHA-256.
-  - Границы evidence соблюдены: individual_asset vs campaign_set, causal=false, numeric_uplift=false.
-  - Внешние API-вызовы отсутствуют.
-  - UI корректно показывает limited-статус для всех 9 кампаний (stub vision).
-- Ограничения, требующие VLM:
-  - Нет real visual extraction (vision_provider=stub).
-  - Нет completed diagnostic на контрастном кейсе OZON-007.
-  - Только OZON-005 (non-contrast) имеет completed diagnostic.
+- Результат acceptance (2026-07-30):
+  - Synthetic E2E и CI проходят.
+  - Real-data browser path пройден локально на Mac mini.
+  - Контрастный кейс OZON-007 имеет real preview, visual extraction, completed diagnostic и factual CG/TG outcomes.
+  - Локальный visual runtime: Qwen2.5-VL-7B через llama.cpp и OpenAI-compatible adapter; изображения передаются как base64 data URL.
+  - Diagnostic сформировал 8 findings; proposed/final recommendation=`revise`, effective recommendation=`abstain`.
+  - Report v2 сформирован для 9 кампаний и содержит 24 findings.
+  - Границы evidence соблюдены: individual_asset vs campaign_set, causal=false, individual attribution=false, numeric prediction=false.
+  - Все 58 targeted/regression checks прошли; pre-existing failures не связаны с vision.
+  - Приложение и модель работали только через loopback; внешние API-вызовы не обнаружены.
+  - Реальные клиентские файлы, отчёты, screenshots, модели и локальная БД не коммитились.
 - Acceptance:
   - synthetic E2E проходит CI — DONE;
-  - real-data smoke test проходит локально — DONE (с оговорками);
-  - demo script и operator checklist готовы — PARTIAL.
+  - real contrast case проходит полный локальный сценарий — DONE;
+  - report artifacts и integrity checks проходят — DONE;
+  - demo script и operator checklist готовы — DONE.
 
 ### 20. CTA-DATA-002 — Client Calibration Data Request Pack
 
@@ -605,6 +606,8 @@
 
 Первая ближайшая контрольная точка достигается после задач CTA-VIS-002 → CTA-VIS-003 → CTA-VIS-004 → CTA-VIS-005 → CTA-OZON-001 → CTA-OZON-002 → CTA-REPORT-002 → CTA-DEMO-001.
 
+Статус контрольной точки: `ДОСТИГНУТА` 2026-07-30.
+
 Критерий контрольной точки:
 
 > На локальной машине открыт Ozon showcase project; для выбранной кампании видны исходный креатив, извлечённые визуальные признаки, traceable confidence-gated funnel-aware диагностика, фактические CG/TG outcomes, качество linkage, ограничения и скачиваемый evidence-bound отчёт.
@@ -613,4 +616,4 @@
 
 К реализации первой запускается:
 
-`CTA-DEMO-001 — Ozon End-to-End Client Demo`.
+`CTA-DATA-002 — Client Calibration Data Request Pack`.
