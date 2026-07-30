@@ -1,6 +1,6 @@
 # Creative Test Agent — каноническая дорожная карта
 
-Версия: 1.6  
+Версия: 1.7  
 Дата фиксации: 2026-07-30  
 Статус документа: canonical / single source of truth
 
@@ -309,10 +309,11 @@
 
 ### 20. CTA-DATA-002 — Client Calibration Data Request Pack
 
-- Статус: `PLANNED`
+- Статус: `DONE`
 - Контур: `GITHUB`
 - Зависит от: CTA-DEMO-001
 - Цель: стандартизировать запрос следующей партии данных.
+- Результат: реализован детерминированный local-first request pack с 37-полевыми XLSX/CSV шаблонами, Draft 2020-12 JSON Schema, CSV/JSON/XLSX validator, корректными и ошибочными примерами, русской инструкцией, integrity manifest и acceptance self-test.
 - Deliverables:
   - XLSX template;
   - CSV template;
@@ -322,9 +323,11 @@
   - пример ошибочного набора;
   - инструкция клиенту.
 - Acceptance:
-  - обязательные поля формально проверяются;
-  - абсолютные counts предпочтительнее округлённых rates;
-  - asset/campaign/placement linkage обязателен или явно missing.
+  - обязательные поля формально проверяются — DONE;
+  - абсолютные counts предпочтительнее округлённых rates — DONE;
+  - asset/campaign/placement linkage обязателен или явно missing — DONE;
+  - deterministic generation, package integrity и regression CI проходят — DONE;
+  - реальных клиентских материалов в репозитории нет — DONE.
 
 ---
 
@@ -616,4 +619,4 @@
 
 К реализации первой запускается:
 
-`CTA-DATA-002 — Client Calibration Data Request Pack`.
+`CTA-REVIEW-001 — Finding-Level Expert Review`.
