@@ -10,6 +10,7 @@ ExpertVerdict = Literal[
     "supported",
     "partially_supported",
     "unsupported",
+    "harmful_false_positive",
     "needs_rewording",
     "not_reviewed",
 ]

@@ -14,7 +14,11 @@
     <h1>{{ campaign.brand or campaign.product or campaign.case_id }}</h1>
     <p class="evidence-subtitle">{{ campaign.platform or 'platform missing' }} · {{ campaign.period_start or 'date missing' }} — {{ campaign.period_end or 'date missing' }}</p>
   </div>
-  <a class="btn btn-secondary" href="/ui/projects/{{ workspace.project_id }}/campaign-evidence">Back to campaigns</a>
+  <div class="finding-review-actions">
+    <a class="btn btn-secondary" href="/ui/projects/{{ workspace.project_id }}/finding-reviews">Review history</a>
+    <a class="btn btn-secondary" href="/ui/projects/{{ workspace.project_id }}/campaign-evidence/{{ campaign.campaign_id }}/human-findings/new">Add missed finding</a>
+    <a class="btn btn-secondary" href="/ui/projects/{{ workspace.project_id }}/campaign-evidence">Back to campaigns</a>
+  </div>
 </div>
 
 <div class="alert alert-info evidence-boundary">
@@ -92,11 +96,27 @@
 
           {% if asset.diagnostic.findings %}
           <h4>Findings</h4>
-          <ul class="evidence-list">
+          <div class="finding-review-card-list">
             {% for item in asset.diagnostic.findings %}
-            <li>{{ item.get('title', item.get('finding', item.get('message', '—'))) }}</li>
+            {% set finding_id = 'finding:' ~ asset.diagnostic.test_run_id ~ ':' ~ loop.index %}
+            {% set latest_review = review_index.get(finding_id) %}
+            <article class="finding-review-card">
+              <div class="finding-review-card-main">
+                <div class="finding-review-card-text">{{ item.get('title', item.get('finding', item.get('message', item.get('explanation', item.get('description', '—'))))) }}</div>
+                <code>{{ finding_id }}</code>
+              </div>
+              <div class="finding-review-card-status">
+                {% if latest_review %}
+                <span class="badge review-decision-{{ latest_review.decision }}">{{ latest_review.decision }}</span>
+                <span class="muted">revision {{ latest_review.revision_number }}</span>
+                {% else %}
+                <span class="badge review-decision-not-reviewed">not_reviewed</span>
+                {% endif %}
+                <a class="btn btn-secondary" href="/ui/projects/{{ workspace.project_id }}/campaign-evidence/{{ campaign.campaign_id }}/findings/{{ finding_id }}/review">Review finding</a>
+              </div>
+            </article>
             {% endfor %}
-          </ul>
+          </div>
           {% endif %}
 
           {% if asset.diagnostic.risks %}

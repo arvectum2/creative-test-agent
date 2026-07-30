@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
 from src.modules.client_demo.ui_router import router as client_demo_ui_router
+from src.modules.finding_reviews.service import latest_review_index
 from src.modules.ui.router import _error, _render
 from src.shared.errors import AppError
 
@@ -41,6 +42,7 @@ def ui_campaign_evidence_detail(request: Request, project_id: str, campaign_id: 
     try:
         workspace = get_campaign_evidence_workspace(project_id)
         campaign = get_campaign_evidence_detail(project_id, campaign_id)
+        review_index = latest_review_index(project_id)
     except AppError as exc:
         return _error(request, exc.message)
     return _render(
@@ -48,4 +50,5 @@ def ui_campaign_evidence_detail(request: Request, project_id: str, campaign_id: 
         "campaign_evidence/detail.html",
         workspace=workspace,
         campaign=campaign,
+        review_index=review_index,
     )

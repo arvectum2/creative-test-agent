@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Add missed finding — {{ campaign.case_id }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs">
+  <a href="/ui">Dashboard</a> &gt;
+  <a href="/ui/projects/{{ project_id }}/campaign-evidence">Campaign Evidence</a> &gt;
+  <a href="/ui/projects/{{ project_id }}/campaign-evidence/{{ campaign.campaign_id }}">{{ campaign.case_id }}</a> &gt;
+  Add missed finding
+</div>
+
+<div class="page-header">
+  <div>
+    <h1>Add a finding missed by the system</h1>
+    <p class="evidence-subtitle">This creates a human finding. It does not fabricate or alter a system finding.</p>
+  </div>
+  <a class="btn btn-secondary" href="/ui/projects/{{ project_id }}/campaign-evidence/{{ campaign.campaign_id }}">Back to campaign</a>
+</div>
+
+<div class="alert alert-info evidence-boundary">
+  <strong>Decision is fixed to <code>missed_by_system</code>.</strong> The record stores a human snapshot and leaves the system snapshot empty.
+</div>
+
+<section class="card">
+  <form method="POST" class="finding-review-form">
+    <div class="form-grid two-column">
+      <label>Creative asset (optional)
+        <select name="creative_record_id" id="creative-record-select">
+          <option value="">Campaign-level / not linked</option>
+          {% for asset in campaign.assets %}
+          <option value="{{ asset.creative_record_id }}" data-asset-id="{{ asset.creative_asset_id or '' }}">{{ asset.filename or asset.title }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Creative asset ID (optional)
+        <input type="text" name="creative_asset_id" id="creative-asset-id" readonly>
+      </label>
+      <label>Criterion
+        <input type="text" name="criterion" required maxlength="240" placeholder="clarity / brand safety / CTA / evidence">
+      </label>
+      <label>Proposed severity
+        <select name="proposed_severity" required>
+          {% for value in ['info','low','medium','high','critical'] %}<option value="{{ value }}"{% if value == 'medium' %} selected{% endif %}>{{ value }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Expert role
+        <input type="text" name="reviewer_role" required maxlength="160" placeholder="Senior strategist / medical reviewer / brand lead">
+      </label>
+      <label>Reviewer confidence (0–1)
+        <input type="number" name="reviewer_confidence" value="0.8" min="0" max="1" step="0.05" required>
+      </label>
+    </div>
+
+    <label>Finding title
+      <input type="text" name="title" required maxlength="300">
+    </label>
+    <label>Finding text
+      <textarea name="text" rows="5" required maxlength="4000"></textarea>
+    </label>
+
+    <div class="finding-rating-grid human-finding-ratings">
+      {% for name, label in [('relevance','Relevance'),('actionability','Actionability'),('traceability','Traceability')] %}
+      <label>{{ label }} (1–5)
+        <select name="{{ name }}" required>
+          {% for value in [1,2,3,4,5] %}<option value="{{ value }}"{% if value == 4 %} selected{% endif %}>{{ value }}</option>{% endfor %}
+        </select>
+      </label>
+      {% endfor %}
+    </div>
+
+    <label>Rationale
+      <textarea name="rationale" rows="4" maxlength="4000" required placeholder="Why this omission is material and what evidence supports it."></textarea>
+    </label>
+    <label>Additional comment
+      <textarea name="comment" rows="3" maxlength="4000"></textarea>
+    </label>
+    <button type="submit" class="btn btn-primary">Save human finding</button>
+  </form>
+</section>
+
+<script>
+(function () {
+  const select = document.getElementById('creative-record-select');
+  const asset = document.getElementById('creative-asset-id');
+  function syncAssetId() {
+    const option = select.options[select.selectedIndex];
+    asset.value = option ? (option.dataset.assetId || '') : '';
+  }
+  select.addEventListener('change', syncAssetId);
+  syncAssetId();
+})();
+</script>
+{% endblock %}

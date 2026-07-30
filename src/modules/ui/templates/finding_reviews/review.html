@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Finding review — {{ finding.finding_id }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs">
+  <a href="/ui">Dashboard</a> &gt;
+  <a href="/ui/projects/{{ project_id }}/campaign-evidence">Campaign Evidence</a> &gt;
+  <a href="/ui/projects/{{ project_id }}/campaign-evidence/{{ campaign_id }}">{{ finding.case_id }}</a> &gt;
+  Finding review
+</div>
+
+<div class="page-header">
+  <div>
+    <h1>Finding-level expert review</h1>
+    <p class="evidence-subtitle">Review the frozen system finding. Saving creates a new append-only revision.</p>
+  </div>
+  <a class="btn btn-secondary" href="/ui/projects/{{ project_id }}/campaign-evidence/{{ campaign_id }}">Back to campaign</a>
+</div>
+
+{% if saved %}
+<div class="alert alert-success"><strong>Review saved.</strong> The prior revision and original system finding remain unchanged.</div>
+{% endif %}
+
+{% if not finding.current_snapshot_matches_latest_review %}
+<div class="alert alert-warning"><strong>Finding changed since the latest review.</strong> The historic review remains bound to its original SHA-256 snapshot.</div>
+{% endif %}
+
+<section class="card finding-review-source-card">
+  <strong>Immutable system finding</strong>
+  <div class="finding-review-source-heading">
+    <div>
+      <span class="badge">{{ finding.criterion }}</span>
+      <h2>{{ finding.text or 'System finding without text' }}</h2>
+    </div>
+    <div class="finding-review-hash">
+      <span>Frozen snapshot SHA-256</span>
+      <code>{{ finding.snapshot_sha256 }}</code>
+    </div>
+  </div>
+  <div class="detail-grid">
+    <div class="detail-field"><span class="field-label">Finding ID</span><div class="field-value"><code>{{ finding.finding_id }}</code></div></div>
+    <div class="detail-field"><span class="field-label">Test run</span><div class="field-value">{{ finding.test_run_id or '—' }}</div></div>
+    <div class="detail-field"><span class="field-label">Score</span><div class="field-value">{{ finding.score if finding.score is not none else '—' }}</div></div>
+    <div class="detail-field"><span class="field-label">System confidence</span><div class="field-value">{{ finding.confidence if finding.confidence is not none else '—' }}</div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Record expert decision</h2>
+  <form method="POST" class="finding-review-form">
+    <input type="hidden" name="expected_system_finding_sha256" value="{{ finding.snapshot_sha256 }}">
+
+    <div class="form-grid two-column">
+      <label>Expert role
+        <input type="text" name="reviewer_role" required maxlength="160" placeholder="Senior strategist / medical reviewer / brand lead">
+      </label>
+      <label>Decision
+        <select name="decision" required>
+          {% for value in decisions %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <div class="finding-rating-grid">
+      {% for name, label in [('correctness','Correctness'),('relevance','Relevance'),('actionability','Actionability'),('traceability','Traceability')] %}
+      <label>{{ label }} (1–5)
+        <select name="{{ name }}" required>
+          {% for value in [1,2,3,4,5] %}<option value="{{ value }}"{% if value == 4 %} selected{% endif %}>{{ value }}</option>{% endfor %}
+        </select>
+      </label>
+      {% endfor %}
+      <label>Severity correctness
+        <select name="severity_correctness" required>
+          {% for value in severity_options %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Reviewer confidence (0–1)
+        <input type="number" name="reviewer_confidence" value="0.8" min="0" max="1" step="0.05" required>
+      </label>
+    </div>
+
+    <label>Rationale
+      <textarea name="rationale" rows="5" maxlength="4000" required placeholder="Why this decision is justified; reference the visible evidence and wording."></textarea>
+    </label>
+    <label>Additional comment
+      <textarea name="comment" rows="3" maxlength="4000" placeholder="Optional wording proposal or operational note."></textarea>
+    </label>
+    <button type="submit" class="btn btn-primary">Save append-only review</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Review history ({{ finding.review_count }})</h2>
+  {% if finding.review_history %}
+  <div class="finding-review-history">
+    {% for review in finding.review_history|reverse %}
+    <article class="finding-review-history-row">
+      <div>
+        <span class="badge review-decision-{{ review.decision }}">{{ review.decision }}</span>
+        <strong>Revision {{ review.revision_number }}</strong>
+        <span>{{ review.reviewer_display_name }} · {{ review.reviewer_role }}</span>
+      </div>
+      <div class="finding-review-history-meta">{{ review.created_at }} · confidence {{ review.reviewer_confidence }}</div>
+      <p>{{ review.rationale }}</p>
+      {% if review.comment %}<p class="muted">{{ review.comment }}</p>{% endif %}
+      <code>{{ review.system_finding_snapshot_sha256 }}</code>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><h3>Not reviewed yet</h3><p>The system finding is frozen and ready for the first expert decision.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

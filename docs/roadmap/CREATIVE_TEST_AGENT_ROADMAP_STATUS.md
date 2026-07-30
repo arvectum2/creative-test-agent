@@ -1,7 +1,7 @@
 # Creative Test Agent — читаемый статус дорожной карты
 
 Дата среза: 2026-07-30  
-Канонический источник: `docs/roadmap/CREATIVE_TEST_AGENT_CANONICAL_ROADMAP.md`, версия 1.7.
+Канонический источник: `docs/roadmap/CREATIVE_TEST_AGENT_CANONICAL_ROADMAP.md`, версия 1.8.
 
 ## 1. Правило идентификаторов
 
@@ -73,7 +73,7 @@ CTA-VIS-002 (legacy CTA-017)
 
 | № | Канонический ID | Задача | Статус | Контур | Следующее действие |
 |---:|---|---|---|---|---|
-| 21 | CTA-REVIEW-001 | Finding-Level Expert Review | PLANNED | HYBRID | Реализовать БД, API, UI, audit и exports; затем локально проверить usability. |
+| 21 | CTA-REVIEW-001 | Finding-Level Expert Review | DONE | HYBRID | Локальная приёмка завершена на Mac mini; automated + browser acceptance пройдены. |
 | 22 | CTA-REVIEW-002 | Independent Review Adjudication | PLANNED | HYBRID + CLIENT | Сохранить независимые review и согласовать с заказчиком процесс adjudication. |
 | 23 | CTA-CAL-003 | Calibration Quality Dashboard | PLANNED | HYBRID | Рассчитать review-метрики и экспортировать XLSX/JSON. |
 

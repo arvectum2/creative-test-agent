@@ -1,6 +1,6 @@
 # Creative Test Agent — каноническая дорожная карта
 
-Версия: 1.7  
+Версия: 1.8  
 Дата фиксации: 2026-07-30  
 Статус документа: canonical / single source of truth
 
@@ -335,7 +335,7 @@
 
 ### 21. CTA-REVIEW-001 — Finding-Level Expert Review
 
-- Статус: `PLANNED`
+- Статус: `DONE`
 - Контур: `HYBRID`
 - Зависит от: CTA-REPORT-002
 - Цель: обеспечить поштучную проверку выводов агента.

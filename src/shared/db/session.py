@@ -64,6 +64,7 @@ def init_db():
     import src.modules.evaluations.models  # noqa: F401
     import src.modules.prompt_traces.models  # noqa: F401
     import src.modules.reviews.models  # noqa: F401
+    import src.modules.finding_reviews.models  # noqa: F401
     import src.modules.job_queue.models  # noqa: F401
     import src.modules.batches.models  # noqa: F401
     import src.modules.import_sessions.models  # noqa: F401
