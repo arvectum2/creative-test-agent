@@ -1,7 +1,7 @@
 # Creative Test Agent — каноническая дорожная карта
 
-Версия: 1.4  
-Дата фиксации: 2026-07-29  
+Версия: 1.5  
+Дата фиксации: 2026-07-30  
 Статус документа: canonical / single source of truth
 
 ## Назначение
@@ -225,7 +225,7 @@
 
 ### 16. CTA-OZON-001 — Ozon Showcase Data Loader
 
-- Статус: `PLANNED`
+- Статус: `DONE`
 - Контур: `HYBRID`
 - Зависит от: CTA-DATA-001, CTA-CAL-002
 - Цель: идемпотентно собирать локальный showcase-проект из ZIP и XLSX.
@@ -243,7 +243,7 @@
 
 ### 17. CTA-OZON-002 — Ozon Campaign Evidence Workspace
 
-- Статус: `PLANNED`
+- Статус: `DONE`
 - Контур: `HYBRID`
 - Зависит от: CTA-OZON-001, CTA-VIS-005
 - Цель: показать в UI связку campaign → creative set → CG/TG outcomes → agent diagnostics.
@@ -261,7 +261,7 @@
 
 ### 18. CTA-REPORT-002 — Evidence-Bound Client Report v2
 
-- Статус: `PLANNED`
+- Статус: `DONE`
 - Контур: `HYBRID`
 - Зависит от: CTA-VIS-005, CTA-OZON-002
 - Цель: сформировать основной клиентский отчёт пилота.
@@ -610,4 +610,4 @@
 
 К реализации первой запускается:
 
-`CTA-OZON-001 — Ozon Showcase Data Loader`.
+`CTA-DEMO-001 — Ozon End-to-End Client Demo`.

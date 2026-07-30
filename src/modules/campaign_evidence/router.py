@@ -1,10 +1,13 @@
 from fastapi import APIRouter
 
+from src.modules.client_report_v2.router import router as client_report_v2_router
+
 from .schemas import CampaignEvidence, CampaignEvidenceWorkspace
 from .service import get_campaign_evidence_detail, get_campaign_evidence_workspace
 
 
 router = APIRouter(prefix="/campaign-evidence", tags=["campaign-evidence"])
+router.include_router(client_report_v2_router)
 
 
 @router.get("/projects/{project_id}", response_model=CampaignEvidenceWorkspace)
