@@ -1,6 +1,6 @@
 # CTA-DEMO-001 — Acceptance
 
-Status: `BLOCKED_LOCAL`  
+Status: `BLOCKED_VLM`  
 Implementation mode: `HYBRID`  
 GitHub implementation completed: 2026-07-30
 
@@ -32,12 +32,34 @@ GitHub implementation completed: 2026-07-30
 
 ## Remaining local acceptance
 
-- [ ] Run the browser path against the real Ozon showcase project on the Mac mini.
+- [x] Run the browser path against the real Ozon showcase project on the Mac mini.
 - [ ] Verify at least one real contrast case has preview, visual extraction, completed diagnostic and CG/TG outcomes.
-- [ ] Verify multi-asset, rejected-link and missing-data cases remain visibly limited.
-- [ ] Generate report v2 and open all required formats locally.
-- [ ] Confirm local-only posture and absence of external API traffic.
-- [ ] Post a sanitized smoke-test summary to issue #52.
+- [x] Verify multi-asset, rejected-link and missing-data cases remain visibly limited.
+- [x] Generate report v2 and open all required formats locally.
+- [x] Confirm local-only posture and absence of external API traffic.
+- [x] Post a sanitized smoke-test summary to issue #52.
+
+## Local smoke-test outcome (2026-07-30)
+
+**Verdict: Smoke infrastructure: PASS / Full CTA-DEMO-001 acceptance: BLOCKED_VLM**
+
+The pipeline was executed end-to-end against the real Ozon showcase project (`75fed771-...`):
+
+- Report v2 generated (ID: `rpt2-c8f72f2c...`) with 6 verified artifacts (HTML, PPTXs, DOCX, evidence JSON, XLSX)
+- Evidence boundaries correctly separate individual_asset diagnostics from campaign_set outcomes
+- No causal interpretation, numeric uplift, or individual attribution — all correctly rejected
+- No cloud API traffic detected; all requests from loopback only
+- SHA-256 integrity verified for all artifacts; repeated download deterministic
+- Demo UI correctly shows all 9 campaigns as `limited` with documented reasons
+- Limitations section in report documents 17 items (multi_asset, missing_diagnostics, rejected_asset_link, etc.)
+- Expert review: all 8 findings `not_reviewed` (fabricated=false)
+
+**Known blockers preventing full DONE:**
+1. Stub vision provider — no real visual extraction; visual criteria show "not assessed"
+2. No completed diagnostic on the default contrast case (OZON-007)
+3. Only OZON-005 has completed diagnostics (non-contrast case)
+
+These are environment limitations, not pipeline defects. Full acceptance requires a configured local VLM or cloud provider for visual extraction.
 
 ## Explicit non-acceptance
 

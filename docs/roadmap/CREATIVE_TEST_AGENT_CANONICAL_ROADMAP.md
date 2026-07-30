@@ -286,22 +286,25 @@
 
 ### 19. CTA-DEMO-001 — Ozon End-to-End Client Demo
 
-- Статус: `PLANNED`
+- Статус: `PARTIAL`
 - Контур: `HYBRID`
 - Зависит от: CTA-OZON-002, CTA-REPORT-002
 - Цель: зафиксировать воспроизводимый демонстрационный сценарий.
-- Сценарий:
-  - открыть showcase project;
-  - выбрать кампанию;
-  - показать исходный креатив;
-  - показать visual extraction;
-  - показать funnel diagnostics;
-  - сопоставить с CG/TG;
-  - скачать отчёт.
+- Результат smoke-test (2026-07-30):
+  - Synthetic E2E CI проходит.
+  - Real-data smoke test пройден локально на Mac mini.
+  - Все 6 артефактов отчёта v2 сгенерированы и проверены по SHA-256.
+  - Границы evidence соблюдены: individual_asset vs campaign_set, causal=false, numeric_uplift=false.
+  - Внешние API-вызовы отсутствуют.
+  - UI корректно показывает limited-статус для всех 9 кампаний (stub vision).
+- Ограничения, требующие VLM:
+  - Нет real visual extraction (vision_provider=stub).
+  - Нет completed diagnostic на контрастном кейсе OZON-007.
+  - Только OZON-005 (non-contrast) имеет completed diagnostic.
 - Acceptance:
-  - synthetic E2E проходит CI;
-  - real-data smoke test проходит локально;
-  - demo script и operator checklist готовы.
+  - synthetic E2E проходит CI — DONE;
+  - real-data smoke test проходит локально — DONE (с оговорками);
+  - demo script и operator checklist готовы — PARTIAL.
 
 ### 20. CTA-DATA-002 — Client Calibration Data Request Pack
 
