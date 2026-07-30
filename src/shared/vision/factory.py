@@ -10,6 +10,22 @@ from src.shared.vision.schemas import VisionResult
 from src.shared.vision.stub import StubVisionAnalyzer
 
 
+def _create_vlm_analyzer(settings):
+    from src.shared.vision.vlm import LocalVlmAnalyzer, OpenAiCompatibleVlmAnalyzer
+
+    api_style = getattr(settings, "vision_api_style", "ollama")
+    if api_style == "openai_compatible":
+        return OpenAiCompatibleVlmAnalyzer(
+            base_url=settings.vision_base_url or "",
+            model=settings.vision_model or "",
+            timeout_seconds=settings.vision_timeout_seconds,
+        )
+    return LocalVlmAnalyzer(
+        base_url=settings.vision_base_url or "",
+        model=settings.vision_model or "",
+    )
+
+
 def get_vision_analyzer() -> VisionAnalyzer:
     settings = get_settings()
     provider = settings.vision_provider
@@ -24,21 +40,13 @@ def get_vision_analyzer() -> VisionAnalyzer:
         return LocalOcrAnalyzer()
 
     if provider == "local_vlm":
-        from src.shared.vision.vlm import LocalVlmAnalyzer
-        return LocalVlmAnalyzer(
-            base_url=settings.vision_base_url or "",
-            model=settings.vision_model or "",
-        )
+        return _create_vlm_analyzer(settings)
 
     if provider == "hybrid":
         from src.shared.vision.ocr import LocalOcrAnalyzer
-        from src.shared.vision.vlm import LocalVlmAnalyzer
 
         ocr = LocalOcrAnalyzer()
-        vlm = LocalVlmAnalyzer(
-            base_url=settings.vision_base_url or "",
-            model=settings.vision_model or "",
-        )
+        vlm = _create_vlm_analyzer(settings)
         return HybridAnalyzer(ocr, vlm)
 
     return StubVisionAnalyzer()

@@ -40,6 +40,14 @@ def validate_vision_provider(provider: str | None = None) -> None:
             status_code=400,
         )
 
+    api_style = getattr(settings, "vision_api_style", "ollama")
+    if api_style not in ("ollama", "openai_compatible"):
+        raise AppError(
+            code="unsupported_vision_api_style",
+            message=f"Unsupported vision API style '{api_style}'. Must be 'ollama' or 'openai_compatible'.",
+            status_code=400,
+        )
+
     if provider == "local_ocr" and not settings.enable_local_ocr:
         raise AppError(
             code="local_ocr_disabled",
