@@ -1,6 +1,6 @@
 # CTA-DEMO-001 — Acceptance
 
-Status: `BLOCKED_LOCAL (smoke-tested, needs VLM)`  
+Status: `BLOCKED_VLM`  
 Implementation mode: `HYBRID`  
 GitHub implementation completed: 2026-07-30
 
@@ -41,7 +41,7 @@ GitHub implementation completed: 2026-07-30
 
 ## Local smoke-test outcome (2026-07-30)
 
-**Verdict: PASS (with caveats)**
+**Verdict: Smoke infrastructure: PASS / Full CTA-DEMO-001 acceptance: BLOCKED_VLM**
 
 The pipeline was executed end-to-end against the real Ozon showcase project (`75fed771-...`):
 
