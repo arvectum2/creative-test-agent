@@ -16,7 +16,7 @@ def get_engine():
         _engine = create_engine(
             settings.database_url,
             echo=settings.debug,
-            connect_args={"check_same_thread": False},
+            connect_args={"check_same_thread": False, "timeout": 60},
             pool_pre_ping=True,
         )
         if settings.database_url.startswith("sqlite"):

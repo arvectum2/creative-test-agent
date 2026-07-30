@@ -164,8 +164,6 @@ def run_test_run(run_id: str, audit_writer=None) -> TestRunResponse:
             raise ValueError(f"Test run {run_id} not found")
 
         validate_llm_provider()
-        if audit_writer:
-            audit_writer("test_run_started", "test_run", run_id, {})
 
         provider = get_llm_provider()
         run.status = "running"
@@ -175,6 +173,9 @@ def run_test_run(run_id: str, audit_writer=None) -> TestRunResponse:
         brand_profile_id = run.brand_profile_id
         audience_profile_ids = json_loads(run.audience_profile_ids_json) or []
         rubric_id = run.rubric_id
+
+    if audit_writer:
+        audit_writer("test_run_started", "test_run", run_id, {})
 
     try:
         result = run_confidence_aware_pipeline(
@@ -212,24 +213,25 @@ def run_test_run(run_id: str, audit_writer=None) -> TestRunResponse:
             fresh.status = "completed"
             fresh.completed_at = datetime.now(timezone.utc)
             db.flush()
-            db.refresh(fresh)
+            response = _to_response(fresh)
+            audit_data = {
+                "findings_count": len(result["findings"]),
+                "final_recommendation": result["final_recommendation"],
+                "effective_recommendation": result.get("effective_recommendation"),
+                "visual_evidence_confidence": result.get("visual_evidence_confidence"),
+                "visual_traceability_status": result.get("visual_traceability_status"),
+                "unresolved_visual_finding_count": result.get("unresolved_visual_finding_count", 0),
+                "visual_decision_status": result.get("visual_decision_status"),
+                "visual_abstention_count": result.get("visual_abstention_count", 0),
+                "visual_review_required_count": result.get("visual_review_required_count", 0),
+                "visual_confidence_policy_fingerprint": (
+                    result.get("visual_confidence_policy") or {}
+                ).get("fingerprint"),
+            }
 
-            if audit_writer:
-                audit_writer("test_run_completed", "test_run", run_id, {
-                    "findings_count": len(result["findings"]),
-                    "final_recommendation": result["final_recommendation"],
-                    "effective_recommendation": result.get("effective_recommendation"),
-                    "visual_evidence_confidence": result.get("visual_evidence_confidence"),
-                    "visual_traceability_status": result.get("visual_traceability_status"),
-                    "unresolved_visual_finding_count": result.get("unresolved_visual_finding_count", 0),
-                    "visual_decision_status": result.get("visual_decision_status"),
-                    "visual_abstention_count": result.get("visual_abstention_count", 0),
-                    "visual_review_required_count": result.get("visual_review_required_count", 0),
-                    "visual_confidence_policy_fingerprint": (
-                        result.get("visual_confidence_policy") or {}
-                    ).get("fingerprint"),
-                })
-            return _to_response(fresh)
+        if audit_writer:
+            audit_writer("test_run_completed", "test_run", run_id, audit_data)
+        return response
 
     except Exception:
         with db_session() as db:
