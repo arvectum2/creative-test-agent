@@ -42,6 +42,12 @@
           {% for value in ['info','low','medium','high','critical'] %}<option value="{{ value }}"{% if value == 'medium' %} selected{% endif %}>{{ value }}</option>{% endfor %}
         </select>
       </label>
+      <label>Expert ID
+        <input type="text" name="reviewer_subject_id" maxlength="255" placeholder="expert-a / reviewer-01">
+      </label>
+      <label>Expert display name
+        <input type="text" name="reviewer_display_name" maxlength="255" placeholder="Reviewer A">
+      </label>
       <label>Expert role
         <input type="text" name="reviewer_role" required maxlength="160" placeholder="Senior strategist / medical reviewer / brand lead">
       </label>

@@ -1,0 +1,55 @@
+name: CTA-REVIEW-002
+
+on:
+  pull_request:
+    paths:
+      - "src/modules/finding_reviews/**"
+      - "src/modules/client_report_v2/**"
+      - "src/modules/ui/templates/finding_reviews/**"
+      - "migrations/**"
+      - "tests/test_finding_reviews.py"
+      - "tests/test_client_report_v2.py"
+      - "docs/**CTA-REVIEW-002**"
+      - ".github/workflows/cta-review-002.yml"
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CTA_DATABASE_URL: sqlite:///./.ci/creative_test_agent.db
+      CTA_LOCAL_ONLY_MODE: "true"
+      CTA_HOST: 127.0.0.1
+      CTA_PUBLIC_BASE_URL: http://localhost:8000
+      CTA_TRUSTED_HOSTS: localhost,127.0.0.1,test,testserver
+      CTA_ALLOW_CLOUD_LLM: "false"
+      CTA_LLM_PROVIDER: stub
+      CTA_VISION_PROVIDER: stub
+      CTA_ENABLE_AUTH: "false"
+      CTA_SECURITY_FAIL_CLOSED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip --quiet
+          python -m pip install -e ".[dev]" --quiet
+      - name: Compile and model registry
+        run: |
+          python -m compileall -q src scripts
+          python scripts/check_model_registry.py
+      - name: Migrate clean database
+        run: |
+          mkdir -p .ci
+          alembic upgrade head
+      - name: Independent-review adjudication acceptance
+        run: python -m pytest tests/test_finding_reviews.py tests/test_client_report_v2.py -q

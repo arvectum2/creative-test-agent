@@ -10,7 +10,7 @@
 <div class="page-header">
   <div>
     <h1>Finding review audit trail</h1>
-    <p class="evidence-subtitle">Append-only expert decisions and human-added omissions for this project.</p>
+    <p class="evidence-subtitle">Append-only independent review streams and human-added omissions for this project.</p>
   </div>
   <div class="finding-review-actions">
     <a class="btn btn-secondary" href="/finding-reviews/projects/{{ project_id }}/evidence.json">Evidence JSON</a>
@@ -23,14 +23,15 @@
   <div class="table-scroll">
   <table class="finding-review-table">
     <tr>
-      <th>Finding</th><th>Origin</th><th>Decision</th><th>Reviewer</th><th>Revision</th><th>Created</th>
+      <th>Finding</th><th>Origin</th><th>Decision</th><th>Reviewer</th><th>Expert rev.</th><th>Global rev.</th><th>Created</th>
     </tr>
     {% for review in reviews|reverse %}
     <tr>
       <td><code>{{ review.finding_id }}</code><br><span class="muted">{{ review.case_id or review.campaign_id or '—' }}</span></td>
       <td>{{ review.source_kind }}</td>
       <td><span class="badge review-decision-{{ review.decision }}">{{ review.decision }}</span></td>
-      <td>{{ review.reviewer_display_name }}<br><span class="muted">{{ review.reviewer_role }}</span></td>
+      <td>{{ review.reviewer_display_name }}<br><span class="muted">{{ review.reviewer_role }}</span><br><code>{{ review.reviewer_subject_id }}</code></td>
+      <td>{{ review.reviewer_revision_number }}</td>
       <td>{{ review.revision_number }}</td>
       <td>{{ review.created_at }}</td>
     </tr>

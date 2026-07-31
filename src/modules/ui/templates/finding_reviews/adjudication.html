@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Finding adjudication — {{ finding.finding_id }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs">
+  <a href="/ui">Dashboard</a> &gt;
+  <a href="/ui/projects/{{ project_id }}/campaign-evidence/{{ campaign_id }}">{{ finding.case_id }}</a> &gt;
+  <a href="/ui/projects/{{ project_id }}/campaign-evidence/{{ campaign_id }}/findings/{{ finding.finding_id }}/review">Finding review</a> &gt;
+  Adjudication
+</div>
+
+<div class="page-header">
+  <div>
+    <h1>Independent review adjudication</h1>
+    <p class="evidence-subtitle">Resolve the current disagreement without modifying either expert review.</p>
+  </div>
+  <a class="btn btn-secondary" href="/ui/projects/{{ project_id }}/campaign-evidence/{{ campaign_id }}/findings/{{ finding.finding_id }}/review">Back to reviews</a>
+</div>
+
+{% if saved %}
+<div class="alert alert-success"><strong>Adjudication saved.</strong> The basis reviews and all prior adjudication rounds remain immutable.</div>
+{% endif %}
+
+{% if disagreement.status == 'stale_adjudication' %}
+<div class="alert alert-warning"><strong>Prior adjudication is stale.</strong> At least one reviewer stream changed; a new adjudication round is required.</div>
+{% elif disagreement.status == 'agreement' %}
+<div class="alert alert-success"><strong>No active disagreement.</strong> Current independent reviews agree; adjudication is not required.</div>
+{% elif disagreement.status == 'insufficient_reviews' %}
+<div class="alert alert-warning"><strong>At least two independent reviewers are required.</strong></div>
+{% elif disagreement.status == 'adjudicated' %}
+<div class="alert alert-success"><strong>Current disagreement is adjudicated.</strong> A new review will make this adjudication stale rather than overwrite it.</div>
+{% endif %}
+
+<section class="card">
+  <h2>Frozen finding</h2>
+  <p>{{ finding.text }}</p>
+  <div class="detail-grid">
+    <div class="detail-field"><span class="field-label">Finding ID</span><div class="field-value"><code>{{ finding.finding_id }}</code></div></div>
+    <div class="detail-field"><span class="field-label">Snapshot SHA-256</span><div class="field-value"><code>{{ finding.snapshot_sha256 }}</code></div></div>
+    <div class="detail-field"><span class="field-label">Current status</span><div class="field-value"><strong>{{ disagreement.status }}</strong></div></div>
+    <div class="detail-field"><span class="field-label">Basis fingerprint</span><div class="field-value"><code>{{ disagreement.basis_fingerprint_sha256 }}</code></div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Latest independent reviews ({{ disagreement.reviewer_count }})</h2>
+  {% for review in disagreement.latest_reviews %}
+  <article class="finding-review-history-row">
+    <div>
+      <span class="badge review-decision-{{ review.decision }}">{{ review.decision }}</span>
+      <strong>{{ review.reviewer_display_name }}</strong>
+      <span>{{ review.reviewer_role }} · expert revision {{ review.reviewer_revision_number }}</span>
+    </div>
+    <div class="finding-review-history-meta"><code>{{ review.reviewer_subject_id }}</code> · review {{ review.id }}</div>
+    <div class="detail-grid">
+      <div class="detail-field"><span class="field-label">Correctness</span><div class="field-value">{{ review.correctness }}</div></div>
+      <div class="detail-field"><span class="field-label">Relevance</span><div class="field-value">{{ review.relevance }}</div></div>
+      <div class="detail-field"><span class="field-label">Actionability</span><div class="field-value">{{ review.actionability }}</div></div>
+      <div class="detail-field"><span class="field-label">Traceability</span><div class="field-value">{{ review.traceability }}</div></div>
+      <div class="detail-field"><span class="field-label">Severity correctness</span><div class="field-value">{{ review.severity_correctness }}</div></div>
+      <div class="detail-field"><span class="field-label">Confidence</span><div class="field-value">{{ review.reviewer_confidence }}</div></div>
+    </div>
+    <p>{{ review.rationale }}</p>
+  </article>
+  {% endfor %}
+  {% if disagreement.disagreement_reasons %}
+  <p><strong>Automatic disagreement reasons:</strong> {{ disagreement.disagreement_reasons|join(', ') }}</p>
+  {% endif %}
+</section>
+
+{% if disagreement.status in ['disagreement', 'stale_adjudication'] %}
+<section class="card">
+  <h2>Record adjudication</h2>
+  <p class="evidence-subtitle">Provisional policy: admin/manager, distinct from every basis reviewer, mandatory rationale, immutable basis.</p>
+  <form method="POST" class="finding-review-form">
+    <input type="hidden" name="expected_basis_fingerprint_sha256" value="{{ disagreement.basis_fingerprint_sha256 }}">
+    <div class="form-grid two-column">
+      <label>Adjudicator ID
+        <input type="text" name="adjudicator_subject_id" maxlength="255" placeholder="adjudicator-01">
+        <small>Used in local/no-auth mode. Authenticated users are bound to their account.</small>
+      </label>
+      <label>Adjudicator display name
+        <input type="text" name="adjudicator_display_name" maxlength="255" placeholder="Lead adjudicator">
+      </label>
+      <label>Adjudicator role
+        <input type="text" name="adjudicator_role" required maxlength="160" placeholder="Methodology owner / medical lead / client approver">
+      </label>
+      <label>Final decision
+        <select name="decision" required>
+          {% for value in decisions %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    <div class="finding-rating-grid">
+      {% for name, label in [('correctness','Correctness'),('relevance','Relevance'),('actionability','Actionability'),('traceability','Traceability')] %}
+      <label>{{ label }} (1–5)
+        <select name="{{ name }}" required>
+          {% for value in [1,2,3,4,5] %}<option value="{{ value }}"{% if value == 4 %} selected{% endif %}>{{ value }}</option>{% endfor %}
+        </select>
+      </label>
+      {% endfor %}
+      <label>Severity correctness
+        <select name="severity_correctness" required>
+          {% for value in severity_options %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Adjudicator confidence (0–1)
+        <input type="number" name="adjudicator_confidence" value="0.8" min="0" max="1" step="0.05" required>
+      </label>
+    </div>
+    <label>Mandatory rationale
+      <textarea name="rationale" rows="6" maxlength="4000" required placeholder="Explain how the conflicting evidence and reviewer rationales were resolved."></textarea>
+    </label>
+    <label>Additional comment
+      <textarea name="comment" rows="3" maxlength="4000"></textarea>
+    </label>
+    <button type="submit" class="btn btn-primary">Save append-only adjudication</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Adjudication history ({{ finding.adjudication_history|length }})</h2>
+  {% if finding.adjudication_history %}
+    {% for adjudication in finding.adjudication_history|reverse %}
+    <article class="finding-review-history-row">
+      <div>
+        <span class="badge review-decision-{{ adjudication.decision }}">{{ adjudication.decision }}</span>
+        <strong>Round {{ adjudication.adjudication_round }}</strong>
+        <span>{{ adjudication.adjudicator_display_name }} · {{ adjudication.adjudicator_role }}</span>
+      </div>
+      <div class="finding-review-history-meta">{{ adjudication.created_at }} · <code>{{ adjudication.basis_fingerprint_sha256 }}</code></div>
+      <p>{{ adjudication.rationale }}</p>
+      {% if adjudication.comment %}<p class="muted">{{ adjudication.comment }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  {% else %}
+  <div class="empty-state"><h3>No adjudication yet</h3><p>The independent reviews remain unresolved or do not require adjudication.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

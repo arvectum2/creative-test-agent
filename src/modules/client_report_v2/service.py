@@ -77,17 +77,51 @@ def _attach_finding_reviews(
 ) -> None:
     by_id = {item["finding_id"]: item for item in persisted_assessments}
     assessment_block = evidence.setdefault("expert_assessment", {})
+    pending_adjudication_count = 0
+    pending_review_count = 0
+    adjudicated_count = 0
+    independent_agreement_count = 0
     for row in assessment_block.get("assessments") or []:
         persisted = by_id.get(row.get("finding_id"))
-        if persisted:
-            row.update(persisted)
+        if not persisted:
+            continue
+        row.update(persisted)
+        review_status = str(persisted.get("review_status") or "")
+        if review_status == "single_review":
+            row["status"] = "not_reviewed"
+            pending_review_count += 1
+        elif persisted.get("verdict") == "not_reviewed":
+            row["status"] = "not_reviewed"
+            if review_status == "pending_adjudication":
+                pending_adjudication_count += 1
+        else:
             row["status"] = "reviewed"
+            if review_status == "adjudicated":
+                adjudicated_count += 1
+            elif review_status == "independent_agreement":
+                independent_agreement_count += 1
+
     assessment_block["human_findings"] = human_findings
+    assessment_block["governance_summary"] = {
+        "pending_adjudication_count": pending_adjudication_count,
+        "pending_review_count": pending_review_count,
+        "adjudicated_finding_count": adjudicated_count,
+        "independent_agreement_count": independent_agreement_count,
+        "human_finding_count": len(human_findings),
+    }
     summary = evidence.setdefault("summary", {})
     summary["human_finding_count"] = len(human_findings)
+    summary["pending_adjudication_count"] = pending_adjudication_count
+    summary["pending_review_count"] = pending_review_count
+    summary["adjudicated_finding_count"] = adjudicated_count
+    summary["independent_agreement_count"] = independent_agreement_count
+    reviewed = sum(1 for row in assessment_block.get("assessments") or [] if row.get("status") == "reviewed")
+    summary["reviewed_finding_count"] = reviewed
+    summary["unreviewed_finding_count"] = len(assessment_block.get("assessments") or []) - reviewed
+    limitations = evidence.setdefault("limitations_and_confidence", {}).setdefault("limitations", [])
+
     if human_findings:
         summary["release_status"] = "manual_review_required"
-        limitations = evidence.setdefault("limitations_and_confidence", {}).setdefault("limitations", [])
         limitations.append(
             {
                 "limitation_id": "boundary:human-added-findings",
@@ -99,13 +133,50 @@ def _attach_finding_reviews(
                 "evidence_references": [],
             }
         )
+    if pending_adjudication_count:
+        summary["release_status"] = "manual_review_required"
+        limitations.append(
+            {
+                "limitation_id": "boundary:pending-review-adjudication",
+                "campaign_id": None,
+                "code": "independent_review_disagreement_pending",
+                "severity": "warning",
+                "message": (
+                    f"{pending_adjudication_count} finding(s) have unresolved independent-review "
+                    "disagreement and remain not_reviewed for client-release purposes."
+                ),
+                "context": {"pending_adjudication_count": pending_adjudication_count},
+                "evidence_references": [],
+            }
+        )
+    if pending_review_count:
+        summary["release_status"] = "manual_review_required"
+        limitations.append(
+            {
+                "limitation_id": "boundary:insufficient-independent-review",
+                "campaign_id": None,
+                "code": "independent_review_incomplete",
+                "severity": "warning",
+                "message": (
+                    f"{pending_review_count} finding(s) have only a single independent review and "
+                    "require a second reviewer before client release."
+                ),
+                "context": {"pending_review_count": pending_review_count},
+                "evidence_references": [],
+            }
+        )
     evidence.setdefault("claim_boundary", {}).update(
         {
             "system_findings_mutated_by_expert_review": False,
             "human_omissions_fabricated_as_system_findings": False,
             "finding_reviews_are_append_only": True,
+            "independent_reviews_mutated_by_adjudication": False,
+            "adjudications_are_append_only": True,
+            "unresolved_disagreement_released_as_expert_verdict": False,
+            "single_review_released_as_completed_independent_review": False,
         }
     )
+    summary["limitation_count"] = len(limitations)
 
 
 def get_client_report_v2(project_id: str, report_id: str) -> ClientReportV2Response:
@@ -207,9 +278,9 @@ def _read_json(path: Path) -> dict:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise AppError("client_report_v2_manifest_unreadable", "Report manifest is unreadable", 409) from exc
+        raise AppError("client_report_v2_manifest_unreadable", "Client report v2 manifest is unreadable", 409) from exc
     if not isinstance(value, dict):
-        raise AppError("client_report_v2_manifest_invalid", "Report manifest must be an object", 409)
+        raise AppError("client_report_v2_manifest_invalid", "Client report v2 manifest must be an object", 409)
     return value
 
 

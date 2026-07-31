@@ -11,17 +11,17 @@
 <div class="page-header">
   <div>
     <h1>Finding-level expert review</h1>
-    <p class="evidence-subtitle">Review the frozen system finding. Saving creates a new append-only revision.</p>
+    <p class="evidence-subtitle">Each expert has an independent append-only revision stream. Saving never replaces another expert’s review.</p>
   </div>
   <a class="btn btn-secondary" href="/ui/projects/{{ project_id }}/campaign-evidence/{{ campaign_id }}">Back to campaign</a>
 </div>
 
 {% if saved %}
-<div class="alert alert-success"><strong>Review saved.</strong> The prior revision and original system finding remain unchanged.</div>
+<div class="alert alert-success"><strong>Review saved.</strong> The prior revisions, other reviewer streams and original system finding remain unchanged.</div>
 {% endif %}
 
 {% if not finding.current_snapshot_matches_latest_review %}
-<div class="alert alert-warning"><strong>Finding changed since the latest review.</strong> The historic review remains bound to its original SHA-256 snapshot.</div>
+<div class="alert alert-warning"><strong>Finding changed since at least one latest review.</strong> Historic reviews remain bound to their original SHA-256 snapshots.</div>
 {% endif %}
 
 <section class="card finding-review-source-card">
@@ -44,12 +44,39 @@
   </div>
 </section>
 
+{% if finding.disagreement %}
 <section class="card">
-  <h2>Record expert decision</h2>
+  <div class="page-header">
+    <div>
+      <h2>Independent-review state</h2>
+      <p class="evidence-subtitle">{{ finding.disagreement.reviewer_count }} current reviewer stream(s); status: <strong>{{ finding.disagreement.status }}</strong>.</p>
+    </div>
+    {% if finding.disagreement.status in ['disagreement', 'stale_adjudication', 'adjudicated'] %}
+    <a class="btn btn-primary" href="/ui/projects/{{ project_id }}/campaign-evidence/{{ campaign_id }}/findings/{{ finding.finding_id }}/adjudicate">Open adjudication</a>
+    {% endif %}
+  </div>
+  <div class="detail-grid">
+    <div class="detail-field"><span class="field-label">Basis fingerprint</span><div class="field-value"><code>{{ finding.disagreement.basis_fingerprint_sha256 }}</code></div></div>
+    <div class="detail-field"><span class="field-label">Decisions</span><div class="field-value">{{ finding.disagreement.decision_values|join(', ') or '—' }}</div></div>
+    <div class="detail-field"><span class="field-label">Severity values</span><div class="field-value">{{ finding.disagreement.severity_values|join(', ') or '—' }}</div></div>
+    <div class="detail-field"><span class="field-label">Reasons</span><div class="field-value">{{ finding.disagreement.disagreement_reasons|join(', ') or 'none' }}</div></div>
+  </div>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Record independent expert decision</h2>
   <form method="POST" class="finding-review-form">
     <input type="hidden" name="expected_system_finding_sha256" value="{{ finding.snapshot_sha256 }}">
 
     <div class="form-grid two-column">
+      <label>Expert ID
+        <input type="text" name="reviewer_subject_id" maxlength="255" placeholder="expert-a / reviewer-01">
+        <small>Required to distinguish experts when authentication is disabled. Authenticated users are bound to their account.</small>
+      </label>
+      <label>Expert display name
+        <input type="text" name="reviewer_display_name" maxlength="255" placeholder="Reviewer A">
+      </label>
       <label>Expert role
         <input type="text" name="reviewer_role" required maxlength="160" placeholder="Senior strategist / medical reviewer / brand lead">
       </label>
@@ -84,7 +111,7 @@
     <label>Additional comment
       <textarea name="comment" rows="3" maxlength="4000" placeholder="Optional wording proposal or operational note."></textarea>
     </label>
-    <button type="submit" class="btn btn-primary">Save append-only review</button>
+    <button type="submit" class="btn btn-primary">Save independent review</button>
   </form>
 </section>
 
@@ -96,10 +123,11 @@
     <article class="finding-review-history-row">
       <div>
         <span class="badge review-decision-{{ review.decision }}">{{ review.decision }}</span>
-        <strong>Revision {{ review.revision_number }}</strong>
+        <strong>Expert revision {{ review.reviewer_revision_number }}</strong>
+        <span>global revision {{ review.revision_number }}</span>
         <span>{{ review.reviewer_display_name }} · {{ review.reviewer_role }}</span>
       </div>
-      <div class="finding-review-history-meta">{{ review.created_at }} · confidence {{ review.reviewer_confidence }}</div>
+      <div class="finding-review-history-meta">{{ review.created_at }} · confidence {{ review.reviewer_confidence }} · <code>{{ review.reviewer_subject_id }}</code></div>
       <p>{{ review.rationale }}</p>
       {% if review.comment %}<p class="muted">{{ review.comment }}</p>{% endif %}
       <code>{{ review.system_finding_snapshot_sha256 }}</code>
@@ -107,7 +135,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty-state"><h3>Not reviewed yet</h3><p>The system finding is frozen and ready for the first expert decision.</p></div>
+  <div class="empty-state"><h3>Not reviewed yet</h3><p>The system finding is frozen and ready for independent expert decisions.</p></div>
   {% endif %}
 </section>
 {% endblock %}
