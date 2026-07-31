@@ -1,0 +1,60 @@
+name: CTA-CAL-003
+
+on:
+  pull_request:
+    paths:
+      - "src/modules/calibration_dashboard/**"
+      - "src/modules/finding_reviews/**"
+      - "src/modules/ui/templates/calibration_dashboard/**"
+      - "src/modules/ui/templates/projects/detail.html"
+      - "src/main.py"
+      - "src/shared/db/session.py"
+      - "migrations/**"
+      - "tests/test_calibration_dashboard.py"
+      - "docs/calibration_quality_dashboard.md"
+      - "docs/acceptance/CTA-CAL-003.md"
+      - "docs/local/CTA-CAL-003_MAC_MINI_OPENCODE.md"
+      - "docs/roadmap/CREATIVE_TEST_AGENT_CANONICAL_ROADMAP.md"
+      - ".github/workflows/cta-cal-003.yml"
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CTA_DATABASE_URL: sqlite:///./.ci/creative_test_agent.db
+      CTA_LOCAL_ONLY_MODE: "true"
+      CTA_HOST: 127.0.0.1
+      CTA_PUBLIC_BASE_URL: http://localhost:8000
+      CTA_TRUSTED_HOSTS: localhost,127.0.0.1,test,testserver
+      CTA_ALLOW_CLOUD_LLM: "false"
+      CTA_LLM_PROVIDER: stub
+      CTA_VISION_PROVIDER: stub
+      CTA_ENABLE_AUTH: "false"
+      CTA_SECURITY_FAIL_CLOSED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip --quiet
+          python -m pip install -e ".[dev]" --quiet
+      - name: Compile and model registry
+        run: |
+          python -m compileall -q src scripts tests/test_calibration_dashboard.py
+          python scripts/check_model_registry.py
+      - name: Migrate clean database
+        run: |
+          mkdir -p .ci
+          alembic upgrade head
+      - name: Calibration dashboard acceptance
+        run: python -m pytest tests/test_calibration_dashboard.py tests/test_finding_reviews.py -q

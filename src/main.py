@@ -34,6 +34,8 @@ from src.modules.prompt_traces.router import router as prompt_traces_router
 from src.modules.reviews.router import router as reviews_router
 from src.modules.finding_reviews.router import router as finding_reviews_router
 from src.modules.finding_reviews.ui_router import router as finding_reviews_ui_router
+from src.modules.calibration_dashboard.router import router as calibration_dashboard_router
+from src.modules.calibration_dashboard.ui_router import router as calibration_dashboard_ui_router
 from src.modules.job_queue.router import router as job_queue_router
 from src.modules.batches.router import router as batches_router
 from src.modules.demo.router import router as demo_router
@@ -151,6 +153,7 @@ app.include_router(auth_ui_router)
 app.include_router(ui_router)
 app.include_router(campaign_evidence_ui_router)
 app.include_router(finding_reviews_ui_router)
+app.include_router(calibration_dashboard_ui_router)
 app.include_router(pilot_workspace_router)
 app.include_router(llm_router)
 app.include_router(vision_router, prefix="/vision")
@@ -168,6 +171,7 @@ app.include_router(evaluations_router)
 app.include_router(prompt_traces_router)
 app.include_router(reviews_router)
 app.include_router(finding_reviews_router)
+app.include_router(calibration_dashboard_router)
 app.include_router(job_queue_router)
 app.include_router(batches_router)
 app.include_router(import_sessions_router)

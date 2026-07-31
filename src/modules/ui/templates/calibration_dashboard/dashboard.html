@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Calibration Quality Dashboard — {{ t("Creative Test Agent") }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs">
+  <a href="/ui">{{ t("Dashboard") }}</a> &gt;
+  <a href="/ui/projects">{{ t("Projects") }}</a> &gt;
+  <a href="/ui/projects/{{ project_id }}">{{ project_id }}</a> &gt;
+  Calibration Quality Dashboard
+</div>
+
+<div class="page-header">
+  <div>
+    <h1>Calibration Quality Dashboard</h1>
+    <p style="color:#8888a0;max-width:760px;">Описательные метрики экспертной калибровки и трудозатрат. Они не являются валидированной точностью модели и не доказывают причинный brand lift.</p>
+  </div>
+</div>
+
+{% if saved %}<div class="alert alert-success">Изменения сохранены.</div>{% endif %}
+<div class="alert alert-info">
+  Real, synthetic и unclassified evidence считаются раздельно. Missing evidence остаётся missing; автоматическая настройка порогов и выбор модели не выполняются.
+</div>
+
+<div class="card">
+  <h2>Срез evidence</h2>
+  <div class="btn-group">
+    <a class="btn {% if dashboard.evidence_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}" href="/ui/projects/{{ project_id }}/calibration?evidence_filter=all">Все</a>
+    <a class="btn {% if dashboard.evidence_filter == 'real_client' %}btn-primary{% else %}btn-secondary{% endif %}" href="/ui/projects/{{ project_id }}/calibration?evidence_filter=real_client">Real client</a>
+    <a class="btn {% if dashboard.evidence_filter == 'synthetic' %}btn-primary{% else %}btn-secondary{% endif %}" href="/ui/projects/{{ project_id }}/calibration?evidence_filter=synthetic">Synthetic</a>
+    <a class="btn {% if dashboard.evidence_filter == 'unclassified' %}btn-primary{% else %}btn-secondary{% endif %}" href="/ui/projects/{{ project_id }}/calibration?evidence_filter=unclassified">Unclassified</a>
+  </div>
+  <div class="export-links">
+    <a class="btn btn-secondary" href="/calibration-dashboard/projects/{{ project_id }}/export.json?evidence_filter={{ dashboard.evidence_filter }}">JSON</a>
+    <a class="btn btn-secondary" href="/calibration-dashboard/projects/{{ project_id }}/export.xlsx?evidence_filter={{ dashboard.evidence_filter }}">XLSX</a>
+    <a class="btn btn-secondary" href="/calibration-dashboard/projects/{{ project_id }}/manifest.json?evidence_filter={{ dashboard.evidence_filter }}">Manifest</a>
+    <a class="btn btn-secondary" href="/finding-reviews/projects/{{ project_id }}/evidence.json">Finding review evidence</a>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  {% for metric in dashboard.metrics %}
+  <div class="dashboard-card" style="text-align:left;">
+    <h3>{{ metric.label }}</h3>
+    <div class="count" style="font-size:1.55rem;">
+      {% if metric.value is none %}—{% elif metric.unit == 'ratio' %}{{ '%.1f'|format(metric.value * 100) }}%{% else %}{{ metric.value }}{% endif %}
+    </div>
+    <div style="font-size:0.78rem;color:#8888a0;">{{ metric.evidence_status }} · n={{ metric.numerator if metric.numerator is not none else '—' }}/{{ metric.denominator if metric.denominator is not none else '—' }}</div>
+    <div style="font-size:0.78rem;color:#8888a0;">coverage: {% if metric.coverage is none %}—{% else %}{{ '%.1f'|format(metric.coverage * 100) }}%{% endif %}</div>
+    <details style="margin-top:0.7rem;font-size:0.8rem;">
+      <summary>Определение и ограничения</summary>
+      <p style="margin-top:0.5rem;">{{ metric.definition }}</p>
+      <p style="color:#8888a0;">{{ metric.interpretation }}</p>
+      {% for limitation in metric.limitations %}<p style="color:#fbbf24;">{{ limitation }}</p>{% endfor %}
+    </details>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>Разделение evidence</h2>
+  <table>
+    <thead><tr><th>Класс</th><th>Cases</th><th>System findings</th><th>Cases с outcomes</th><th>Cases с workflow measurement</th></tr></thead>
+    <tbody>
+    {% for evidence_class, counts in dashboard.evidence_split.items() %}
+      <tr>
+        <td><span class="badge badge-created">{{ evidence_class }}</span></td>
+        <td>{{ counts.case_count }}</td>
+        <td>{{ counts.system_finding_count }}</td>
+        <td>{{ counts.outcome_case_count }}</td>
+        <td>{{ counts.workflow_measured_case_count }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Cases и покрытие</h2>
+  {% if dashboard.cases %}
+  <div style="overflow-x:auto;">
+  <table>
+    <thead><tr><th>Case</th><th>Evidence</th><th>System</th><th>Resolved</th><th>Unresolved</th><th>Human-added</th><th>Outcomes</th><th>Touch, sec</th><th>Actions</th><th>Классификация</th></tr></thead>
+    <tbody>
+    {% for case in dashboard.cases %}
+      {% set current = classifications.get(case.case_id) %}
+      <tr>
+        <td><strong>{{ case.case_id }}</strong>{% if case.campaign_id %}<br><span style="font-size:0.75rem;color:#55556a;">{{ case.campaign_id }}</span>{% endif %}</td>
+        <td>{{ case.evidence_class }}</td>
+        <td>{{ case.system_finding_count }}</td>
+        <td>{{ case.resolved_finding_count }}</td>
+        <td>{{ case.unresolved_finding_count }}</td>
+        <td>{{ case.human_added_finding_count }}</td>
+        <td>{{ case.outcome_observation_count }}</td>
+        <td>{{ case.operator_touch_seconds if case.operator_touch_seconds is not none else '—' }}</td>
+        <td>{{ case.manual_action_count if case.manual_action_count is not none else '—' }}</td>
+        <td style="min-width:260px;">
+          <form method="post" action="/ui/projects/{{ project_id }}/calibration/cases/{{ case.case_id }}">
+            <div class="form-group" style="margin-bottom:0.4rem;">
+              <select name="evidence_class" aria-label="Evidence class">
+                <option value="real_client" {% if (current and current.evidence_class == 'real_client') or (not current and case.evidence_class == 'real_client') %}selected{% endif %}>real_client</option>
+                <option value="synthetic" {% if (current and current.evidence_class == 'synthetic') or (not current and case.evidence_class == 'synthetic') %}selected{% endif %}>synthetic</option>
+                <option value="unclassified" {% if (current and current.evidence_class == 'unclassified') or (not current and case.evidence_class == 'unclassified') %}selected{% endif %}>unclassified</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0.4rem;">
+              <select name="inclusion_status" aria-label="Inclusion status">
+                <option value="included" {% if (current and current.inclusion_status == 'included') or (not current and case.inclusion_status == 'included') %}selected{% endif %}>included</option>
+                <option value="excluded" {% if current and current.inclusion_status == 'excluded' %}selected{% endif %}>excluded</option>
+                <option value="deferred" {% if current and current.inclusion_status == 'deferred' %}selected{% endif %}>deferred</option>
+              </select>
+            </div>
+            <input type="hidden" name="source_reference" value="{{ current.source_reference if current and current.source_reference else '' }}">
+            <input type="hidden" name="notes" value="{{ current.notes if current and current.notes else '' }}">
+            <button class="btn btn-primary btn-sm" type="submit">Сохранить</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<div class="empty-state"><p>Для выбранного evidence-среза cases отсутствуют.</p></div>{% endif %}
+</div>
+
+<div class="card">
+  <h2>Добавить workflow measurement</h2>
+  <p style="color:#8888a0;margin-bottom:1rem;">Touch time вводится явно и не вычисляется по audit timestamps. Case должен быть предварительно классифицирован.</p>
+  <form method="post" action="/ui/projects/{{ project_id }}/calibration/workflow">
+    <div class="detail-grid">
+      <div class="form-group"><label>Case</label><select name="case_id" required>
+        {% for case in dashboard.cases %}{% if classifications.get(case.case_id) %}<option value="{{ case.case_id }}">{{ case.case_id }} · {{ case.evidence_class }}</option>{% endif %}{% endfor %}
+      </select></div>
+      <div class="form-group"><label>Stage</label><input name="stage" maxlength="120" required placeholder="intake_to_report"></div>
+      <div class="form-group"><label>Status</label><select name="status"><option>completed</option><option>failed</option><option>blocked</option><option>cancelled</option></select></div>
+      <div class="form-group"><label>Wall-clock, sec</label><input type="number" name="wall_clock_seconds" min="0" step="0.01" required></div>
+      <div class="form-group"><label>Operator touch, sec</label><input type="number" name="operator_touch_seconds" min="0" step="0.01" required></div>
+      <div class="form-group"><label>Manual actions</label><input type="number" name="manual_action_count" min="0" step="1" required></div>
+      <div class="form-group"><label>Report version</label><input name="report_version" maxlength="120"></div>
+      <div class="form-group"><label>Notes</label><input name="notes" maxlength="4000"></div>
+    </div>
+    <button class="btn btn-primary" type="submit">Добавить неизменяемую запись</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Workflow history</h2>
+  {% if measurements %}
+  <div style="overflow-x:auto;"><table>
+    <thead><tr><th>Created</th><th>Case</th><th>Stage</th><th>Status</th><th>Wall-clock</th><th>Touch</th><th>Actions</th><th>Report</th></tr></thead>
+    <tbody>{% for item in measurements|reverse %}<tr>
+      <td>{{ item.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td><td>{{ item.case_id }}</td><td>{{ item.stage }}</td><td>{{ item.status }}</td><td>{{ item.wall_clock_seconds }}</td><td>{{ item.operator_touch_seconds }}</td><td>{{ item.manual_action_count }}</td><td>{{ item.report_version or '—' }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p>Измерений пока нет.</p>{% endif %}
+</div>
+
+<div class="card">
+  <h2>Review и workflow statuses</h2>
+  <div class="detail-grid">
+    <div><h3>Review</h3><pre>{{ dashboard.review_status_counts | tojson }}</pre></div>
+    <div><h3>Workflow</h3><pre>{{ dashboard.workflow_status_counts | tojson }}</pre></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Claim boundary</h2>
+  <pre>{{ dashboard.claim_boundary | tojson }}</pre>
+  {% for item in dashboard.limitations %}<p style="color:#fbbf24;">{{ item }}</p>{% endfor %}
+</div>
+{% endblock %}
