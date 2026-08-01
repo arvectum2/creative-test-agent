@@ -1,12 +1,14 @@
 # Creative Test Agent — каноническая дорожная карта
 
-Версия: 1.9  
+Версия: 2.0  
 Дата фиксации: 2026-07-31  
 Статус документа: `canonical / single source of truth`
 
 ## Назначение
 
 Документ фиксирует канонический порядок задач, зависимости и фактический статус Creative Test Agent. Детализированная историческая редакция v1.8 сохранена в `docs/roadmap/archive/CREATIVE_TEST_AGENT_CANONICAL_ROADMAP_v1.8_2026-07-30.md`, но не является источником текущих статусов.
+
+Изменение v2.0 расширяет ближайшую локальную задачу `CTA-BENCH-002` до полного model-contour benchmark: LLM, VLM, OCR, hybrid и deployment topology на целевом Apple Silicon. Код задачи и её место в dependency chain не меняются.
 
 Правила:
 
@@ -160,16 +162,29 @@
 
 | Порядок | Код | Каноническое имя | Статус | Контур | Зависит от |
 |---:|---|---|---|---|---|
-| 24 | CTA-BENCH-002 | Target Hardware OCR/VLM Benchmark | `BLOCKED_LOCAL` | LOCAL_IDE | CTA-VIS-003, CTA-VISION-001 |
+| 24 | CTA-BENCH-002 | Target Hardware LLM/VLM/OCR Benchmark | `BLOCKED_LOCAL` | LOCAL_IDE | CTA-VIS-003, CTA-VISION-001 |
 | 25 | CTA-MODEL-001 | Production Local Model Profile | `BLOCKED_LOCAL` | HYBRID | CTA-BENCH-002 |
 
 ### 24. CTA-BENCH-002 — ближайшая задача
 
-Нужно сравнить минимум три режима OCR/VLM/hybrid на фактическом оборудовании и измерить extraction quality, hallucination, abstention, repeatability, latency, CPU/GPU/RAM/VRAM. Результатом становится выбранный кандидат либо документированное отсутствие приемлемого кандидата.
+На Mac mini Apple M4 Pro с 24 GB unified memory нужно сравнить текущий рабочий baseline и MLX-кандидатов для полного модельного контура:
+
+- OCR-only, VLM-only и OCR + VLM hybrid;
+- LLM analytical stages и structured output;
+- существующий `Qwen2.5-VL-7B + llama.cpp` как обязательный proven baseline;
+- MLX VLM 8B/4B и MLX LLM 9B/4B как challengers;
+- минимум две deployment topology: единая модель и последовательная/резидентная пара VLM + LLM;
+- extraction/analysis quality, schema compliance, evidence references, hallucination, abstention, repeatability;
+- cold/warm wall-clock, first non-empty token, single-request, concurrency=2, load/unload;
+- CPU/GPU/RAM, memory pressure/swap и корректное освобождение model processes.
+
+Результатом становится выбранный воспроизводимый профиль для demo/pilot, разные профили по сценариям либо документированное отсутствие приемлемого кандидата. MLX не считается победителем заранее; он должен доказать преимущество относительно уже принятого llama.cpp contour.
+
+Полное локальное ТЗ: `docs/local/CTA-BENCH-002_MAC_MINI_OPENCODE.md`.
 
 ### 25. CTA-MODEL-001 — следующий dependency gate
 
-После benchmark фиксируется воспроизводимый production local model profile: OCR engine, VLM, LLM, quantization, context size, timeout, fallback, image limits и измеренные resource requirements.
+После benchmark фиксируется воспроизводимый production local model profile: OCR engine, VLM, LLM, runtime/server, quantization, context size, timeout, concurrency, fallback, image limits, load/unload policy, deployment topology и измеренные resource requirements.
 
 ---
 
@@ -235,6 +250,6 @@ Release candidate должен включать release bundle, manifest, SBOM/d
 
 К реализации первой запускается:
 
-`CTA-BENCH-002 — Target Hardware OCR/VLM Benchmark`.
+`CTA-BENCH-002 — Target Hardware LLM/VLM/OCR Benchmark`.
 
-Контур: `LOCAL_IDE`. Для выполнения требуется OpenCode на Mac mini/целевом железе.
+Контур: `LOCAL_IDE`. Для выполнения требуется OpenCode на Mac mini M4 Pro 24 GB/целевом железе.
