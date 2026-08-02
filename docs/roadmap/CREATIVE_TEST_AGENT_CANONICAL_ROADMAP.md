@@ -162,23 +162,24 @@
 
 | Порядок | Код | Каноническое имя | Статус | Контур | Зависит от |
 |---:|---|---|---|---|---|
-| 24 | CTA-BENCH-002 | Target Hardware LLM/VLM/OCR Benchmark | `BLOCKED_LOCAL` | LOCAL_IDE | CTA-VIS-003, CTA-VISION-001 |
+| 24 | CTA-BENCH-002 | Target Hardware LLM/VLM/OCR Benchmark | `DONE` | LOCAL_IDE | CTA-VIS-003, CTA-VISION-001 |
 | 25 | CTA-MODEL-001 | Production Local Model Profile | `BLOCKED_LOCAL` | HYBRID | CTA-BENCH-002 |
 
 ### 24. CTA-BENCH-002 — ближайшая задача
 
-На Mac mini Apple M4 Pro с 24 GB unified memory нужно сравнить текущий рабочий baseline и MLX-кандидатов для полного модельного контура:
+**Статус: DONE** (2026-08-02).
 
-- OCR-only, VLM-only и OCR + VLM hybrid;
-- LLM analytical stages и structured output;
-- существующий `Qwen2.5-VL-7B + llama.cpp` как обязательный proven baseline;
-- MLX VLM 8B/4B и MLX LLM 9B/4B как challengers;
-- минимум две deployment topology: единая модель и последовательная/резидентная пара VLM + LLM;
-- extraction/analysis quality, schema compliance, evidence references, hallucination, abstention, repeatability;
-- cold/warm wall-clock, first non-empty token, single-request, concurrency=2, load/unload;
-- CPU/GPU/RAM, memory pressure/swap и корректное освобождение model processes.
+Зафиксировано:
 
-Результатом становится выбранный воспроизводимый профиль для demo/pilot, разные профили по сценариям либо документированное отсутствие приемлемого кандидата. MLX не считается победителем заранее; он должен доказать преимущество относительно уже принятого llama.cpp contour.
+- revision `20260801-091536`, 11 кандидатов, 211 run records;
+- выбранный visual profile: **VLM-MLX-4B** (`mlx-community/Qwen3-VL-4B-Instruct-4bit`);
+- выбранная topology: **TOPOLOGY-U** (unified LLM analytical path), schema_valid `0.941`;
+- сохранён llama.cpp baseline (Qwen2.5-VL-7B + llama.cpp) как reference;
+- PaddleOCR compatibility failure зафиксирован как ограничение;
+- schema-valid limitation `0.941` объяснён конкретным case/stage, invalid output fail-closed;
+- полный application-path LLM E2E (3 synthetic cases) → Client Report v2 + deterministic export;
+- Mac mini M4 Pro / 24 GB acceptance подтверждён, no client data committed;
+- реализация: PR #70, clean harness + local model integration.
 
 Полное локальное ТЗ: `docs/local/CTA-BENCH-002_MAC_MINI_OPENCODE.md`.
 
@@ -250,6 +251,6 @@ Release candidate должен включать release bundle, manifest, SBOM/d
 
 К реализации первой запускается:
 
-`CTA-BENCH-002 — Target Hardware LLM/VLM/OCR Benchmark`.
+`CTA-MODEL-001 — Production Local Model Profile`.
 
-Контур: `LOCAL_IDE`. Для выполнения требуется OpenCode на Mac mini M4 Pro 24 GB/целевом железе.
+Контур: `HYBRID`. Dependency gate: CTA-BENCH-002 (DONE). Фиксирует воспроизводимый production local model profile на основе выбранного benchmark контура (VLM-MLX-4B + TOPOLOGY-U): OCR engine, VLM, LLM, runtime/server, quantization, context size, timeout, concurrency, fallback, image limits, load/unload policy, deployment topology и измеренные resource requirements. Реализация CTA-MODEL-001 вне текущего close-out.
