@@ -1,7 +1,7 @@
 from src.shared.config.settings import get_settings
 from src.shared.errors import AppError
 
-LOCAL_PROVIDERS = {"stub", "ollama", "lmstudio"}
+LOCAL_PROVIDERS = {"stub", "ollama", "lmstudio", "openai_compatible_local"}
 CLOUD_PROVIDERS = {"openai", "anthropic", "gemini", "perplexity"}
 
 

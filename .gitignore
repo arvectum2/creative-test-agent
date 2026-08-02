@@ -27,3 +27,4 @@ build/
 *.db-wal
 *.db.bak
 artifacts/
+logs/

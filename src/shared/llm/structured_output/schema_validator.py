@@ -20,6 +20,10 @@ STAGE_SCHEMAS: dict[str, dict] = {
             "objections": list,
             "engagement_probability": (int, float),
         },
+        "list_element_types": {
+            "positive_triggers": str,
+            "objections": str,
+        },
     },
     "brand_safety_review": {
         "required": ["overall_risk_level", "risks", "brand_fit_score", "claims_compliance"],
@@ -28,6 +32,9 @@ STAGE_SCHEMAS: dict[str, dict] = {
             "risks": list,
             "brand_fit_score": (int, float),
             "claims_compliance": str,
+        },
+        "list_element_types": {
+            "risks": dict,
         },
     },
     "brandbook_compliance_review": {
@@ -38,6 +45,10 @@ STAGE_SCHEMAS: dict[str, dict] = {
             "recommendations": list,
             "compliance_score": (int, float),
         },
+        "list_element_types": {
+            "violations": dict,
+            "recommendations": str,
+        },
     },
     "rubric_scoring": {
         "required": ["scorecard", "overall_score", "strengths", "weaknesses"],
@@ -47,6 +58,11 @@ STAGE_SCHEMAS: dict[str, dict] = {
             "strengths": list,
             "weaknesses": list,
         },
+        "list_element_types": {
+            "scorecard": dict,
+            "strengths": str,
+            "weaknesses": str,
+        },
     },
     "final_recommendation": {
         "required": ["final_recommendation", "rationale", "top_actions", "confidence"],
@@ -55,6 +71,9 @@ STAGE_SCHEMAS: dict[str, dict] = {
             "rationale": str,
             "top_actions": list,
             "confidence": str,
+        },
+        "list_element_types": {
+            "top_actions": str,
         },
     },
     "report_input_normalization": {
@@ -118,5 +137,19 @@ def validate_stage_output(stage_name: str, data: dict) -> StageResult:
                 type_check = _check_type(parent_val[field], nested_type)
                 if type_check:
                     result.validation_errors.append(f"Field '{parent_key}.{field}': {type_check}")
+
+    # Check list element types so non-string/non-dict elements fail closed
+    for key, element_type in (schema.get("list_element_types") or {}).items():
+        value = data.get(key)
+        if value is None:
+            continue
+        if not isinstance(value, list):
+            continue
+        for index, element in enumerate(value):
+            element_check = _check_type(element, element_type)
+            if element_check:
+                result.validation_errors.append(
+                    f"List element '{key}[{index}]': {element_check}"
+                )
 
     return result

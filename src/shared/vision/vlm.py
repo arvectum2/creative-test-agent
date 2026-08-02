@@ -98,10 +98,14 @@ class LocalVlmAnalyzer(VisionAnalyzer):
             except json.JSONDecodeError:
                 pass
 
+            detected_text = parsed.get("detected_text", "")
+            if isinstance(detected_text, list):
+                detected_text = " ".join(str(part) for part in detected_text)
+
             return VisionResult(
                 provider="local_vlm",
                 visual_summary=parsed.get("visual_summary", content),
-                detected_text=parsed.get("detected_text", ""),
+                detected_text=detected_text,
                 layout_notes=parsed.get("layout_notes", []),
                 visual_risks=parsed.get("visual_risks", []),
                 warnings=[],
@@ -182,10 +186,14 @@ class OpenAiCompatibleVlmAnalyzer(VisionAnalyzer):
             except json.JSONDecodeError:
                 pass
 
+            detected_text = parsed.get("detected_text", "")
+            if isinstance(detected_text, list):
+                detected_text = " ".join(str(part) for part in detected_text)
+
             return VisionResult(
                 provider="local_vlm",
                 visual_summary=parsed.get("visual_summary", content),
-                detected_text=parsed.get("detected_text", ""),
+                detected_text=detected_text,
                 layout_notes=parsed.get("layout_notes", []),
                 visual_risks=parsed.get("visual_risks", []),
                 warnings=[],
