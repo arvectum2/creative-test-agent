@@ -11,7 +11,7 @@ from src.modules.model_profiles.service import (
     create_profile,
     get_profile,
     list_profiles,
-    load_profile_from_config,
+    load_profile_from_config_with_action,
 )
 
 router = APIRouter(prefix="/model-profiles", tags=["model_profiles"])
@@ -28,8 +28,8 @@ def get_model_profiles():
 def post_model_profile(body: CreateModelProfileRequest):
     try:
         return create_profile(body)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/{profile_id}", response_model=ModelProfileResponse)
@@ -42,22 +42,39 @@ def get_model_profile(profile_id: str):
 
 @router.post("/{profile_id}/health")
 def post_model_profile_health(profile_id: str):
-    from src.modules.model_profiles.service import check_profile_health
     try:
         return check_profile_health(profile_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/load-from-config")
 def post_load_from_config():
-    loaded = []
-    for fpath in sorted(CONFIG_DIR.glob("*.json")):
-        if fpath.name.endswith(".example.json"):
+    results: list[dict] = []
+    errors: list[dict] = []
+    for path in sorted(CONFIG_DIR.glob("*.json")):
+        if path.name.endswith(".example.json"):
             continue
         try:
-            profile = load_profile_from_config(str(fpath))
-            loaded.append(profile.profile_name)
-        except Exception:
-            pass
-    return {"loaded": loaded}
+            profile, action = load_profile_from_config_with_action(path)
+            results.append(
+                {
+                    "file": path.name,
+                    "profile_name": profile.profile_name,
+                    "profile_id": profile.id,
+                    "action": action,
+                }
+            )
+        except Exception as exc:
+            errors.append(
+                {
+                    "file": path.name,
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                }
+            )
+    return {
+        "loaded": results,
+        "errors": errors,
+        "ok": not errors,
+    }

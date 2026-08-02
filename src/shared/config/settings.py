@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     vision_api_style: str = "ollama"
     vision_timeout_seconds: int = 240
     run_local_vision_smoke_tests: bool = False
+    vision_max_image_bytes: int = 15_728_640
+    vision_max_image_pixels: int = 4_194_304
 
     env: str = "local"
     host: str = "127.0.0.1"

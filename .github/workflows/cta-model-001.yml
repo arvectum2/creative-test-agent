@@ -1,0 +1,93 @@
+name: CTA-MODEL-001 profile contract
+
+on:
+  pull_request:
+    paths:
+      - "config/model_profiles/**"
+      - "docs/model_profile/**"
+      - "docs/local/CTA-MODEL-001_MAC_MINI_OPENCODE.md"
+      - "scripts/cta_model_001.py"
+      - "src/shared/model_profile/**"
+      - "src/modules/model_profiles/**"
+      - "tests/test_cta_model_001_profile.py"
+      - "tests/test_model_profiles_openai_compatible_local.py"
+      - ".github/workflows/cta-model-001.yml"
+  push:
+    branches: [main]
+    paths:
+      - "config/model_profiles/**"
+      - "scripts/cta_model_001.py"
+      - "src/shared/model_profile/**"
+      - "src/modules/model_profiles/**"
+      - "tests/test_cta_model_001_profile.py"
+      - "tests/test_model_profiles_openai_compatible_local.py"
+
+permissions:
+  contents: read
+
+jobs:
+  profile-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CTA_DATABASE_URL: sqlite:///./.ci/cta_model_001.db
+      CTA_LOCAL_ONLY_MODE: "true"
+      CTA_ALLOW_CLOUD_LLM: "false"
+      CTA_LLM_PROVIDER: stub
+      CTA_VISION_PROVIDER: stub
+      CTA_HOST: 127.0.0.1
+      CTA_PUBLIC_BASE_URL: http://localhost:8000
+      CTA_TRUSTED_HOSTS: localhost,127.0.0.1,test,testserver
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip --quiet
+          python -m pip install -e ".[dev]" --quiet
+
+      - name: Prepare isolated state
+        run: mkdir -p .ci data/storage data/exports data/backups .local/cta-model-001
+
+      - name: Compile changed profile code
+        run: python -m compileall -q src/shared/model_profile src/modules/model_profiles scripts/cta_model_001.py
+
+      - name: Validate committed draft
+        run: |
+          python scripts/cta_model_001.py validate \
+            --mode draft \
+            --profile config/model_profiles/production/cta_model_001.mac_mini_m4pro_24gb.draft.json
+
+      - name: Verify deterministic application mapping
+        run: |
+          python scripts/cta_model_001.py render-env \
+            --profile config/model_profiles/production/cta_model_001.mac_mini_m4pro_24gb.draft.json \
+            --output .local/cta-model-001/application.env
+          python scripts/cta_model_001.py check-env \
+            --profile config/model_profiles/production/cta_model_001.mac_mini_m4pro_24gb.draft.json \
+            --env-file .local/cta-model-001/application.env
+
+      - name: Validate frozen profile when present
+        shell: bash
+        run: |
+          shopt -s nullglob
+          profiles=(config/model_profiles/production/*.frozen.json)
+          for profile in "${profiles[@]}"; do
+            python scripts/cta_model_001.py validate --mode frozen --profile "$profile"
+          done
+
+      - name: Run profile tests
+        run: |
+          python scripts/run_migrations.py
+          python -m pytest \
+            tests/test_cta_model_001_profile.py \
+            tests/test_model_profiles_openai_compatible_local.py \
+            tests/test_openai_compatible_local_provider.py \
+            tests/test_vlm_analyzer_normalization.py \
+            tests/test_pipeline_structured_recovery.py -q

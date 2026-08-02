@@ -1,0 +1,212 @@
+{
+  "application": {
+    "allow_cloud_llm": false,
+    "hybrid_ocr_vlm_enabled": false,
+    "llm_provider": "openai_compatible_local",
+    "local_only_mode": true,
+    "max_concurrency": 2,
+    "request_timeout_seconds": 240,
+    "vision_api_style": "openai_compatible",
+    "vision_provider": "local_vlm"
+  },
+  "benchmark": {
+    "artifact_manifest_sha256": "dbf635a3bbc190ced05868acb18d3168eed8df50554a3c4f305c687f83075ddc",
+    "candidate_count": 11,
+    "implementation_pr": 70,
+    "revision": "20260801-091536",
+    "run_records": 211,
+    "source_issue": 68,
+    "task_id": "CTA-BENCH-002"
+  },
+  "claim_boundary": {
+    "causal_brand_lift": false,
+    "client_data_committed": false,
+    "cloud_fallback": false,
+    "numeric_uplift_prediction": false,
+    "validated_model_accuracy": false
+  },
+  "fallbacks": {
+    "automatic_cloud_fallback": false,
+    "no_go_conditions": [
+      "either model endpoint is not loopback-only",
+      "the served model identity differs from the frozen manifest",
+      "memory pressure or swap exceeds the frozen resource envelope",
+      "invalid structured output is published instead of failing closed",
+      "residual model processes remain after shutdown",
+      "the request requires unsupported video or more images than the frozen limit"
+    ],
+    "ocr_manual_fallback": {
+      "conditions": [
+        "manual extraction is required for text-heavy evidence",
+        "the primary VLM endpoint is unavailable and the operator accepts reduced visual coverage"
+      ],
+      "enabled": true,
+      "engine": "tesseract"
+    },
+    "vision_reference_fallback": {
+      "candidate_id": "VLM-BASE-LLAMA",
+      "conditions": [
+        "the MLX VLM runtime is incompatible with the target installation",
+        "a controlled regression comparison against the accepted llama.cpp baseline is required"
+      ],
+      "enabled": true,
+      "manual_only": true
+    }
+  },
+  "integrity": {
+    "profile_sha256": "7796913472bb9de1f789c7a7ebaa0a0fab096c48f46e32580c107aab473c9698",
+    "sealed_at_utc": "2026-08-02T07:05:59Z"
+  },
+  "llm": {
+    "enabled": true,
+    "endpoint": {
+      "base_url": "http://127.0.0.1:8093/v1",
+      "chat_completions_path": "/v1/chat/completions",
+      "host": "127.0.0.1",
+      "models_path": "/v1/models",
+      "port": 8093
+    },
+    "generation": {
+      "seed": null,
+      "structured_output_policy": "json_extract_repair_validate_fallback",
+      "temperature": 0.2
+    },
+    "limits": {
+      "context_tokens": 262144,
+      "max_image_bytes": null,
+      "max_image_pixels": null,
+      "max_images_per_request": 0,
+      "max_output_tokens": 4096
+    },
+    "model": {
+      "candidate_id": "LLM-MLX-4B",
+      "disk_bytes": 3061132920,
+      "local_sha256": "e639fca7a46120db434dd9c0c5ead867ccccbe7b849eea543a9423b2cf36c18f",
+      "model_id": "mlx-community/Qwen3.5-4B-MLX-4bit",
+      "quantization": "4bit",
+      "source_revision": "32f3e8ecf65426fc3306969496342d504bfa13f3"
+    },
+    "role": "analytical_structured_output",
+    "runtime": {
+      "command": [
+        "${CTA_LLM_PYTHON}",
+        "-m",
+        "app.cli",
+        "launch",
+        "--model-path",
+        "mlx-community/Qwen3.5-4B-MLX-4bit",
+        "--model-type",
+        "lm",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8093"
+      ],
+      "name": "mlx-openai-server",
+      "python_env_var": "CTA_LLM_PYTHON",
+      "python_version": "3.11.15",
+      "version": "mlx-openai-server==1.3.12"
+    }
+  },
+  "measured_envelope": {
+    "cold_start_seconds": 6.1,
+    "concurrency_1_pass": true,
+    "concurrency_2_pass": true,
+    "disk_footprint_bytes": 6170864991,
+    "end_to_end_wall_seconds": 101.5,
+    "peak_memory_pressure": "normal",
+    "peak_rss_bytes": 3365158912,
+    "resident_headroom_fraction": 0.564,
+    "shutdown_residual_processes": 0,
+    "structured_schema_valid_rate": 0.941,
+    "swap_used_bytes": 1294267843,
+    "visual_p95_seconds": 5.2,
+    "visual_text_f1": 0.731,
+    "warm_max_seconds": 39.6,
+    "warm_p50_seconds": 39.5,
+    "warm_p90_seconds": 39.6
+  },
+  "ocr": {
+    "enabled_by_default": false,
+    "engine": "tesseract",
+    "language_data_sha256": "4f6059e4a09c1a6b4cfb196e1d1ba5f079579aee303b150014bf6350d49a678e",
+    "languages": [
+      "rus",
+      "eng"
+    ],
+    "role": "manual_fallback",
+    "version": "tesseract 5.5.3"
+  },
+  "profile_id": "cta-model-001-mac-mini-m4pro-24gb",
+  "schema_version": "1.0.0",
+  "status": "frozen",
+  "target_hardware": {
+    "chip": "Apple M4 Pro",
+    "model": "Mac mini",
+    "os_build": "25G72",
+    "os_version": "26.6",
+    "platform": "darwin-arm64",
+    "unified_memory_gb": 24
+  },
+  "topology": {
+    "benchmark_label": "TOPOLOGY-U",
+    "load_unload_policy": "Load both servers (vision then llm) before the operator session and stop both after it; on memory-pressure, swap, or model-identity drift fall back to sequential startup and stop both servers before unloading.",
+    "operational_mode": "dual_server_resident",
+    "process_policy": {
+      "force_kill_seconds": 10,
+      "graceful_shutdown_seconds": 20,
+      "pid_root": ".local/cta-model-001",
+      "separate_process_groups": true,
+      "zero_residual_processes_required": true
+    },
+    "reconciliation": "In the CTA-BENCH-002 harness TOPOLOGY-U labels the unified analytical data flow: the visual-to-text stage is the VLM and the VLM-extracted text is fed into the LLM analytical stage, which raises structured-schema validity to 0.941 (bare LLM-MLX-4B/9B fail the hard gate at 0.059/0.176). The accepted full application-path E2E runs two loopback servers: mlx-vlm.server on 127.0.0.1:8091 serves visual extraction (mlx-community/Qwen3-VL-4B-Instruct-4bit) and mlx-openai-server on 127.0.0.1:8093 serves the analytical structured-output stages (mlx-community/Qwen3.5-4B-MLX-4bit). Both processes are resident simultaneously; TOPOLOGY-R co-residency is allowed with headroom_fraction 0.564 (>=0.20), no swap thrashing, graceful shutdown and residual=[] in the artifact, so dual_server_resident does not contradict the TOPOLOGY-U label. Sequential/manual fallback is required only if memory pressure or swap exceeds the frozen envelope, or a server fails exact model identity; the operator then starts the LLM only after the VLM is healthy and stops both before unloading."
+  },
+  "vision": {
+    "enabled": true,
+    "endpoint": {
+      "base_url": "http://127.0.0.1:8091",
+      "chat_completions_path": "/v1/chat/completions",
+      "host": "127.0.0.1",
+      "models_path": "/v1/models",
+      "port": 8091
+    },
+    "generation": {
+      "seed": 42,
+      "structured_output_policy": "json_only_validate_fail_closed",
+      "temperature": 0.0
+    },
+    "limits": {
+      "context_tokens": 262144,
+      "max_image_bytes": 15728640,
+      "max_image_pixels": 4194304,
+      "max_images_per_request": 1,
+      "max_output_tokens": 2048
+    },
+    "model": {
+      "candidate_id": "VLM-MLX-4B",
+      "disk_bytes": 3109732071,
+      "local_sha256": "5febfeb53f098b178fef3e85e9ff1f931e5f61d147ba3917894da857b58715c8",
+      "model_id": "mlx-community/Qwen3-VL-4B-Instruct-4bit",
+      "quantization": "4bit",
+      "source_revision": "2fd8dacbdb8f1e54b8c005f081ec5bf79c56376b"
+    },
+    "role": "visual_extraction",
+    "runtime": {
+      "command": [
+        "${CTA_VLM_PYTHON}",
+        "-m",
+        "mlx_vlm.server",
+        "--model",
+        "mlx-community/Qwen3-VL-4B-Instruct-4bit",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8091"
+      ],
+      "name": "mlx-vlm.server",
+      "python_env_var": "CTA_VLM_PYTHON",
+      "python_version": "3.14.6",
+      "version": "mlx-vlm==0.6.8"
+    }
+  }
+}

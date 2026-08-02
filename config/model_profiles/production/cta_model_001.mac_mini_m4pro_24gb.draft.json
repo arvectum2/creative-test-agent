@@ -1,0 +1,209 @@
+{
+  "profile_id": "cta-model-001-mac-mini-m4pro-24gb",
+  "schema_version": "1.0.0",
+  "status": "draft",
+  "claim_boundary": {
+    "validated_model_accuracy": false,
+    "causal_brand_lift": false,
+    "numeric_uplift_prediction": false,
+    "cloud_fallback": false,
+    "client_data_committed": false
+  },
+  "target_hardware": {
+    "platform": "darwin-arm64",
+    "model": "Mac mini",
+    "chip": "Apple M4 Pro",
+    "unified_memory_gb": 24,
+    "os_version": null,
+    "os_build": null
+  },
+  "benchmark": {
+    "task_id": "CTA-BENCH-002",
+    "revision": "20260801-091536",
+    "run_records": 211,
+    "candidate_count": 11,
+    "artifact_manifest_sha256": null,
+    "source_issue": 68,
+    "implementation_pr": 70
+  },
+  "application": {
+    "local_only_mode": true,
+    "allow_cloud_llm": false,
+    "vision_provider": "local_vlm",
+    "vision_api_style": "openai_compatible",
+    "llm_provider": "openai_compatible_local",
+    "request_timeout_seconds": 240,
+    "max_concurrency": 2,
+    "hybrid_ocr_vlm_enabled": false
+  },
+  "ocr": {
+    "enabled_by_default": false,
+    "role": "manual_fallback",
+    "engine": "tesseract",
+    "version": null,
+    "languages": ["rus", "eng"],
+    "language_data_sha256": null
+  },
+  "vision": {
+    "enabled": true,
+    "role": "visual_extraction",
+    "endpoint": {
+      "base_url": "http://127.0.0.1:8091",
+      "host": "127.0.0.1",
+      "port": 8091,
+      "models_path": "/v1/models",
+      "chat_completions_path": "/v1/chat/completions"
+    },
+    "runtime": {
+      "name": "mlx-vlm.server",
+      "version": null,
+      "python_version": null,
+      "python_env_var": "CTA_VLM_PYTHON",
+      "command": [
+        "${CTA_VLM_PYTHON}",
+        "-m",
+        "mlx_vlm.server",
+        "--model",
+        "mlx-community/Qwen3-VL-4B-Instruct-4bit",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8091"
+      ]
+    },
+    "model": {
+      "candidate_id": "VLM-MLX-4B",
+      "model_id": "mlx-community/Qwen3-VL-4B-Instruct-4bit",
+      "source_revision": null,
+      "local_sha256": null,
+      "quantization": "4bit",
+      "disk_bytes": null
+    },
+    "limits": {
+      "context_tokens": null,
+      "max_output_tokens": 2048,
+      "max_images_per_request": 1,
+      "max_image_bytes": null,
+      "max_image_pixels": null
+    },
+    "generation": {
+      "temperature": 0.0,
+      "seed": 42,
+      "structured_output_policy": "json_only_validate_fail_closed"
+    }
+  },
+  "llm": {
+    "enabled": true,
+    "role": "analytical_structured_output",
+    "endpoint": {
+      "base_url": "http://127.0.0.1:8093/v1",
+      "host": "127.0.0.1",
+      "port": 8093,
+      "models_path": "/v1/models",
+      "chat_completions_path": "/v1/chat/completions"
+    },
+    "runtime": {
+      "name": "mlx-openai-server",
+      "version": null,
+      "python_version": null,
+      "python_env_var": "CTA_LLM_PYTHON",
+      "command": [
+        "${CTA_LLM_PYTHON}",
+        "-m",
+        "app.cli",
+        "launch",
+        "--model-path",
+        "mlx-community/Qwen3.5-4B-MLX-4bit",
+        "--model-type",
+        "lm",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8093"
+      ]
+    },
+    "model": {
+      "candidate_id": "LLM-MLX-4B",
+      "model_id": "mlx-community/Qwen3.5-4B-MLX-4bit",
+      "source_revision": null,
+      "local_sha256": null,
+      "quantization": "4bit",
+      "disk_bytes": null
+    },
+    "limits": {
+      "context_tokens": null,
+      "max_output_tokens": 4096,
+      "max_images_per_request": 0,
+      "max_image_bytes": null,
+      "max_image_pixels": null
+    },
+    "generation": {
+      "temperature": 0.2,
+      "seed": null,
+      "structured_output_policy": "json_extract_repair_validate_fallback"
+    }
+  },
+  "topology": {
+    "benchmark_label": "TOPOLOGY-U",
+    "operational_mode": null,
+    "reconciliation": null,
+    "load_unload_policy": null,
+    "process_policy": {
+      "separate_process_groups": true,
+      "graceful_shutdown_seconds": 20,
+      "force_kill_seconds": 10,
+      "zero_residual_processes_required": true,
+      "pid_root": ".local/cta-model-001"
+    }
+  },
+  "fallbacks": {
+    "automatic_cloud_fallback": false,
+    "ocr_manual_fallback": {
+      "enabled": true,
+      "engine": "tesseract",
+      "conditions": [
+        "manual extraction is required for text-heavy evidence",
+        "the primary VLM endpoint is unavailable and the operator accepts reduced visual coverage"
+      ]
+    },
+    "vision_reference_fallback": {
+      "enabled": true,
+      "candidate_id": "VLM-BASE-LLAMA",
+      "manual_only": true,
+      "conditions": [
+        "the MLX VLM runtime is incompatible with the target installation",
+        "a controlled regression comparison against the accepted llama.cpp baseline is required"
+      ]
+    },
+    "no_go_conditions": [
+      "either model endpoint is not loopback-only",
+      "the served model identity differs from the frozen manifest",
+      "memory pressure or swap exceeds the frozen resource envelope",
+      "invalid structured output is published instead of failing closed",
+      "residual model processes remain after shutdown",
+      "the request requires unsupported video or more images than the frozen limit"
+    ]
+  },
+  "measured_envelope": {
+    "visual_text_f1": 0.731,
+    "visual_p95_seconds": 5.2,
+    "structured_schema_valid_rate": 0.941,
+    "end_to_end_wall_seconds": 101.5,
+    "resident_headroom_fraction": 0.564,
+    "cold_start_seconds": null,
+    "warm_p50_seconds": null,
+    "warm_p90_seconds": null,
+    "warm_max_seconds": null,
+    "peak_rss_bytes": null,
+    "peak_memory_pressure": null,
+    "swap_used_bytes": null,
+    "disk_footprint_bytes": null,
+    "concurrency_1_pass": null,
+    "concurrency_2_pass": null,
+    "shutdown_residual_processes": null
+  },
+  "integrity": {
+    "profile_sha256": null,
+    "sealed_at_utc": null
+  }
+}

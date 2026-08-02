@@ -1,0 +1,17 @@
+{
+  "profile_name": "cta-model-001-llm",
+  "provider": "openai_compatible_local",
+  "model": "mlx-community/Qwen3.5-4B-MLX-4bit",
+  "base_url": "http://127.0.0.1:8093/v1",
+  "enabled": false,
+  "default_for_demo": false,
+  "timeout_seconds": 240,
+  "notes": "CTA-MODEL-001 analytical LLM connection. Copy to a non-.example JSON only after the frozen production profile is accepted.",
+  "metadata": {
+    "task_id": "CTA-MODEL-001",
+    "production_profile_id": "cta-model-001-mac-mini-m4pro-24gb",
+    "benchmark_revision": "20260801-091536",
+    "candidate_id": "LLM-MLX-4B",
+    "local_only": true
+  }
+}

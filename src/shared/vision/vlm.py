@@ -50,10 +50,87 @@ def _detect_image_mime(image_path: str) -> str:
     }.get(suffix, "image/png")
 
 
+def _image_limit_result(
+    warning: str,
+    detail: str,
+    metadata: dict | None = None,
+) -> VisionResult:
+    warnings = ["local_vlm_image_limit_exceeded", detail]
+    return VisionResult(
+        provider="local_vlm",
+        visual_summary="",
+        detected_text="",
+        layout_notes=[],
+        visual_risks=[],
+        warnings=warnings,
+        metadata={
+            **(metadata or {}),
+            "vlm_limit_warning": warning,
+        },
+    )
+
+
+def _check_image_limits(
+    image_path: str,
+    *,
+    max_image_bytes: int | None,
+    max_image_pixels: int | None,
+    metadata: dict | None = None,
+) -> VisionResult | None:
+    if max_image_bytes is None and max_image_pixels is None:
+        return None
+    path = Path(image_path)
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return _image_limit_result(
+            "image_unreadable",
+            f"image file cannot be read: {path}",
+            metadata=metadata,
+        )
+    if max_image_bytes is not None and size > max_image_bytes:
+        return _image_limit_result(
+            "image_too_large_bytes",
+            f"image exceeds the frozen byte limit ({size} > {max_image_bytes})",
+            metadata={**(metadata or {}), "image_bytes": size, "max_image_bytes": max_image_bytes},
+        )
+    if max_image_pixels is not None:
+        try:
+            from PIL import Image
+
+            with Image.open(str(path)) as img:
+                pixels = img.width * img.height
+        except Exception:
+            return _image_limit_result(
+                "image_dimensions_unreadable",
+                "image dimensions cannot be determined; refusing to send",
+                metadata=metadata,
+            )
+        if pixels > max_image_pixels:
+            return _image_limit_result(
+                "image_too_many_pixels",
+                f"image exceeds the frozen pixel limit ({pixels} > {max_image_pixels})",
+                metadata={
+                    **(metadata or {}),
+                    "image_pixels": pixels,
+                    "max_image_pixels": max_image_pixels,
+                },
+            )
+    return None
+
+
 class LocalVlmAnalyzer(VisionAnalyzer):
-    def __init__(self, base_url: str = "", model: str = ""):
+    def __init__(
+        self,
+        base_url: str = "",
+        model: str = "",
+        max_image_bytes: int | None = None,
+        max_image_pixels: int | None = None,
+    ):
         self.base_url = base_url
         self.model = model
+        self.max_image_bytes = max_image_bytes
+        self.max_image_pixels = max_image_pixels
 
     def analyze_image(self, image_path: str, metadata: dict | None = None) -> VisionResult:
         if not self.base_url or not self.model:
@@ -66,6 +143,15 @@ class LocalVlmAnalyzer(VisionAnalyzer):
                 warnings=["local_vlm_unavailable"],
                 metadata=metadata or {},
             )
+
+        limited = _check_image_limits(
+            image_path,
+            max_image_bytes=self.max_image_bytes,
+            max_image_pixels=self.max_image_pixels,
+            metadata=metadata,
+        )
+        if limited is not None:
+            return limited
 
         try:
             with open(image_path, "rb") as f:
@@ -126,10 +212,19 @@ class LocalVlmAnalyzer(VisionAnalyzer):
 
 
 class OpenAiCompatibleVlmAnalyzer(VisionAnalyzer):
-    def __init__(self, base_url: str = "", model: str = "", timeout_seconds: int = 240):
+    def __init__(
+        self,
+        base_url: str = "",
+        model: str = "",
+        timeout_seconds: int = 240,
+        max_image_bytes: int | None = None,
+        max_image_pixels: int | None = None,
+    ):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout_seconds
+        self.max_image_bytes = max_image_bytes
+        self.max_image_pixels = max_image_pixels
 
     def analyze_image(self, image_path: str, metadata: dict | None = None) -> VisionResult:
         if not self.base_url or not self.model:
@@ -142,6 +237,15 @@ class OpenAiCompatibleVlmAnalyzer(VisionAnalyzer):
                 warnings=["local_vlm_unavailable"],
                 metadata=metadata or {},
             )
+
+        limited = _check_image_limits(
+            image_path,
+            max_image_bytes=self.max_image_bytes,
+            max_image_pixels=self.max_image_pixels,
+            metadata=metadata,
+        )
+        if limited is not None:
+            return limited
 
         try:
             _validate_loopback_url(self.base_url)

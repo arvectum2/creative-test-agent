@@ -19,10 +19,14 @@ def _create_vlm_analyzer(settings):
             base_url=settings.vision_base_url or "",
             model=settings.vision_model or "",
             timeout_seconds=settings.vision_timeout_seconds,
+            max_image_bytes=settings.vision_max_image_bytes,
+            max_image_pixels=settings.vision_max_image_pixels,
         )
     return LocalVlmAnalyzer(
         base_url=settings.vision_base_url or "",
         model=settings.vision_model or "",
+        max_image_bytes=settings.vision_max_image_bytes,
+        max_image_pixels=settings.vision_max_image_pixels,
     )
 
 

@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arvectum.local/schemas/cta-model-001-production-profile-v1.schema.json",
+  "title": "CTA-MODEL-001 Production Local Model Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile_id",
+    "schema_version",
+    "status",
+    "claim_boundary",
+    "target_hardware",
+    "benchmark",
+    "application",
+    "ocr",
+    "vision",
+    "llm",
+    "topology",
+    "fallbacks",
+    "measured_envelope",
+    "integrity"
+  ],
+  "properties": {
+    "profile_id": {"const": "cta-model-001-mac-mini-m4pro-24gb"},
+    "schema_version": {"const": "1.0.0"},
+    "status": {"enum": ["draft", "frozen"]},
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validated_model_accuracy",
+        "causal_brand_lift",
+        "numeric_uplift_prediction",
+        "cloud_fallback",
+        "client_data_committed"
+      ],
+      "properties": {
+        "validated_model_accuracy": {"const": false},
+        "causal_brand_lift": {"const": false},
+        "numeric_uplift_prediction": {"const": false},
+        "cloud_fallback": {"const": false},
+        "client_data_committed": {"const": false}
+      }
+    },
+    "target_hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "model", "chip", "unified_memory_gb", "os_version", "os_build"],
+      "properties": {
+        "platform": {"const": "darwin-arm64"},
+        "model": {"const": "Mac mini"},
+        "chip": {"const": "Apple M4 Pro"},
+        "unified_memory_gb": {"const": 24},
+        "os_version": {"type": ["string", "null"], "minLength": 1},
+        "os_build": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_id", "revision", "run_records", "candidate_count", "artifact_manifest_sha256", "source_issue", "implementation_pr"],
+      "properties": {
+        "task_id": {"const": "CTA-BENCH-002"},
+        "revision": {"const": "20260801-091536"},
+        "run_records": {"const": 211},
+        "candidate_count": {"const": 11},
+        "artifact_manifest_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "source_issue": {"const": 68},
+        "implementation_pr": {"const": 70}
+      }
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "local_only_mode",
+        "allow_cloud_llm",
+        "vision_provider",
+        "vision_api_style",
+        "llm_provider",
+        "request_timeout_seconds",
+        "max_concurrency",
+        "hybrid_ocr_vlm_enabled"
+      ],
+      "properties": {
+        "local_only_mode": {"const": true},
+        "allow_cloud_llm": {"const": false},
+        "vision_provider": {"const": "local_vlm"},
+        "vision_api_style": {"const": "openai_compatible"},
+        "llm_provider": {"const": "openai_compatible_local"},
+        "request_timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 900},
+        "max_concurrency": {"type": "integer", "minimum": 1, "maximum": 2},
+        "hybrid_ocr_vlm_enabled": {"const": false}
+      }
+    },
+    "ocr": {"$ref": "#/$defs/ocrProfile"},
+    "vision": {"$ref": "#/$defs/serverProfile"},
+    "llm": {"$ref": "#/$defs/serverProfile"},
+    "topology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["benchmark_label", "operational_mode", "reconciliation", "load_unload_policy", "process_policy"],
+      "properties": {
+        "benchmark_label": {"const": "TOPOLOGY-U"},
+        "operational_mode": {
+          "type": ["string", "null"],
+          "enum": [null, "single_multimodal_server", "dual_server_resident", "dual_server_sequential"]
+        },
+        "reconciliation": {"type": ["string", "null"], "minLength": 20},
+        "load_unload_policy": {"type": ["string", "null"], "minLength": 10},
+        "process_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["separate_process_groups", "graceful_shutdown_seconds", "force_kill_seconds", "zero_residual_processes_required", "pid_root"],
+          "properties": {
+            "separate_process_groups": {"const": true},
+            "graceful_shutdown_seconds": {"type": "integer", "minimum": 1, "maximum": 120},
+            "force_kill_seconds": {"type": "integer", "minimum": 1, "maximum": 60},
+            "zero_residual_processes_required": {"const": true},
+            "pid_root": {"const": ".local/cta-model-001"}
+          }
+        }
+      }
+    },
+    "fallbacks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["automatic_cloud_fallback", "ocr_manual_fallback", "vision_reference_fallback", "no_go_conditions"],
+      "properties": {
+        "automatic_cloud_fallback": {"const": false},
+        "ocr_manual_fallback": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "engine", "conditions"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "engine": {"const": "tesseract"},
+            "conditions": {"type": "array", "items": {"type": "string", "minLength": 3}, "minItems": 1, "uniqueItems": true}
+          }
+        },
+        "vision_reference_fallback": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "candidate_id", "manual_only", "conditions"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "candidate_id": {"const": "VLM-BASE-LLAMA"},
+            "manual_only": {"const": true},
+            "conditions": {"type": "array", "items": {"type": "string", "minLength": 3}, "minItems": 1, "uniqueItems": true}
+          }
+        },
+        "no_go_conditions": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 5},
+          "minItems": 4,
+          "uniqueItems": true
+        }
+      }
+    },
+    "measured_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visual_text_f1",
+        "visual_p95_seconds",
+        "structured_schema_valid_rate",
+        "end_to_end_wall_seconds",
+        "resident_headroom_fraction",
+        "cold_start_seconds",
+        "warm_p50_seconds",
+        "warm_p90_seconds",
+        "warm_max_seconds",
+        "peak_rss_bytes",
+        "peak_memory_pressure",
+        "swap_used_bytes",
+        "disk_footprint_bytes",
+        "concurrency_1_pass",
+        "concurrency_2_pass",
+        "shutdown_residual_processes"
+      ],
+      "properties": {
+        "visual_text_f1": {"const": 0.731},
+        "visual_p95_seconds": {"const": 5.2},
+        "structured_schema_valid_rate": {"const": 0.941},
+        "end_to_end_wall_seconds": {"const": 101.5},
+        "resident_headroom_fraction": {"const": 0.564},
+        "cold_start_seconds": {"type": ["number", "null"], "minimum": 0},
+        "warm_p50_seconds": {"type": ["number", "null"], "minimum": 0},
+        "warm_p90_seconds": {"type": ["number", "null"], "minimum": 0},
+        "warm_max_seconds": {"type": ["number", "null"], "minimum": 0},
+        "peak_rss_bytes": {"type": ["integer", "null"], "minimum": 0},
+        "peak_memory_pressure": {"type": ["string", "null"], "minLength": 1},
+        "swap_used_bytes": {"type": ["integer", "null"], "minimum": 0},
+        "disk_footprint_bytes": {"type": ["integer", "null"], "minimum": 0},
+        "concurrency_1_pass": {"type": ["boolean", "null"]},
+        "concurrency_2_pass": {"type": ["boolean", "null"]},
+        "shutdown_residual_processes": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile_sha256", "sealed_at_utc"],
+      "properties": {
+        "profile_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "sealed_at_utc": {"type": ["string", "null"], "format": "date-time"}
+      }
+    }
+  },
+  "$defs": {
+    "nullableHash": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "python_version", "python_env_var", "command"],
+      "properties": {
+        "name": {"type": "string", "minLength": 2},
+        "version": {"type": ["string", "null"], "minLength": 1},
+        "python_version": {"type": ["string", "null"], "minLength": 1},
+        "python_env_var": {"type": "string", "pattern": "^CTA_[A-Z0-9_]+$"},
+        "command": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 8
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_id", "model_id", "source_revision", "local_sha256", "quantization", "disk_bytes"],
+      "properties": {
+        "candidate_id": {"type": "string", "pattern": "^[A-Z0-9-]+$"},
+        "model_id": {"type": "string", "minLength": 5},
+        "source_revision": {"type": ["string", "null"], "minLength": 7},
+        "local_sha256": {"$ref": "#/$defs/nullableHash"},
+        "quantization": {"type": "string", "minLength": 2},
+        "disk_bytes": {"type": ["integer", "null"], "minimum": 1}
+      }
+    },
+    "serverProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "role", "endpoint", "runtime", "model", "limits", "generation"],
+      "properties": {
+        "enabled": {"const": true},
+        "role": {"enum": ["visual_extraction", "analytical_structured_output"]},
+        "endpoint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base_url", "host", "port", "models_path", "chat_completions_path"],
+          "properties": {
+            "base_url": {"type": "string", "format": "uri"},
+            "host": {"enum": ["127.0.0.1", "localhost", "::1"]},
+            "port": {"type": "integer", "minimum": 1024, "maximum": 65535},
+            "models_path": {"const": "/v1/models"},
+            "chat_completions_path": {"const": "/v1/chat/completions"}
+          }
+        },
+        "runtime": {"$ref": "#/$defs/runtime"},
+        "model": {"$ref": "#/$defs/model"},
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["context_tokens", "max_output_tokens", "max_images_per_request", "max_image_bytes", "max_image_pixels"],
+          "properties": {
+            "context_tokens": {"type": ["integer", "null"], "minimum": 1024},
+            "max_output_tokens": {"type": "integer", "minimum": 1},
+            "max_images_per_request": {"type": "integer", "minimum": 0, "maximum": 8},
+            "max_image_bytes": {"type": ["integer", "null"], "minimum": 1},
+            "max_image_pixels": {"type": ["integer", "null"], "minimum": 1}
+          }
+        },
+        "generation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["temperature", "seed", "structured_output_policy"],
+          "properties": {
+            "temperature": {"type": "number", "minimum": 0, "maximum": 2},
+            "seed": {"type": ["integer", "null"]},
+            "structured_output_policy": {"enum": ["json_extract_repair_validate_fallback", "json_only_validate_fail_closed"]}
+          }
+        }
+      }
+    },
+    "ocrProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled_by_default", "role", "engine", "version", "languages", "language_data_sha256"],
+      "properties": {
+        "enabled_by_default": {"const": false},
+        "role": {"const": "manual_fallback"},
+        "engine": {"const": "tesseract"},
+        "version": {"type": ["string", "null"], "minLength": 1},
+        "languages": {"const": ["rus", "eng"]},
+        "language_data_sha256": {"$ref": "#/$defs/nullableHash"}
+      }
+    }
+  }
+}
