@@ -1,7 +1,7 @@
 # Creative Test Agent — читаемый статус дорожной карты
 
-Дата среза: 2026-07-30  
-Канонический источник: `docs/roadmap/CREATIVE_TEST_AGENT_CANONICAL_ROADMAP.md`, версия 1.8.
+Дата среза: 2026-08-02  
+Канонический источник: `docs/roadmap/CREATIVE_TEST_AGENT_CANONICAL_ROADMAP.md`, версия 2.1.
 
 ## 1. Правило идентификаторов
 
@@ -29,8 +29,8 @@ CTA-VIS-002 (legacy CTA-017)
 |---|---|---:|---:|---|---|
 | 1 | A. Фундамент | 01–11 | 11/11 | DONE | Базовое приложение, intake, DQ, workspace, отчёты, calibration foundation готовы. |
 | 2 | B. Клиентская демонстрация v1 | 12–20 | 9/9 | DONE | Функциональный demo-MVP завершён и принят на реальном Ozon-кейсе. |
-| 3 | C. Экспертная калибровка | 21–23 | 0/3 | NEXT | Нужно встроить экспертную проверку, adjudication и dashboard. |
-| 4 | D. Локальные модели | 24–25 | 0/2 | BLOCKED_LOCAL | Нужен OpenCode/Codex на целевом железе для benchmark и production profile. |
+| 3 | C. Экспертная калибровка | 21–23 | 3/3 | DONE | Finding review, independent adjudication и calibration dashboard реализованы и приняты. |
+| 4 | D. Локальные модели | 24–25 | 2/2 | DONE | Benchmark и frozen production profile приняты на Mac mini M4 Pro / 24 GB. |
 | 5 | E. Controlled pilot | 26–30 | 0/5 | BLOCKED_CLIENT | Нужны 15–20 реальных кейсов и участие экспертов заказчика. |
 | 6 | F. Методология v2 | 31–33 | 0/3 | PLANNED | Выполняется по результатам controlled pilot. |
 | 7 | G. On-premise release | 34–36 | 0/3 | BLOCKED_LOCAL/CLIENT | Требуются установка у клиента, ИБ-приёмка и release bundle. |
@@ -71,18 +71,31 @@ CTA-VIS-002 (legacy CTA-017)
 
 ### Этап 3 — экспертная калибровка
 
-| № | Канонический ID | Задача | Статус | Контур | Следующее действие |
+| № | Канонический ID | Задача | Статус | Контур | Результат |
 |---:|---|---|---|---|---|
-| 21 | CTA-REVIEW-001 | Finding-Level Expert Review | DONE | HYBRID | Локальная приёмка завершена на Mac mini; automated + browser acceptance пройдены. |
-| 22 | CTA-REVIEW-002 | Independent Review Adjudication | PLANNED | HYBRID + CLIENT | Сохранить независимые review и согласовать с заказчиком процесс adjudication. |
-| 23 | CTA-CAL-003 | Calibration Quality Dashboard | PLANNED | HYBRID | Рассчитать review-метрики и экспортировать XLSX/JSON. |
+| 21 | CTA-REVIEW-001 | Finding-Level Expert Review | DONE | HYBRID | Finding-level review, human-added findings, audit и exports приняты. |
+| 22 | CTA-REVIEW-002 | Independent Review Adjudication | DONE | HYBRID + CLIENT | Independent review streams, disagreement, adjudication и release boundary приняты. |
+| 23 | CTA-CAL-003 | Calibration Quality Dashboard | DONE | HYBRID | Review/process metrics, browser/API dashboard и deterministic exports приняты. |
 
 ### Этап 4 — локальные модели
 
-| № | Канонический ID | Задача | Статус | Контур | Следующее действие |
+| № | Канонический ID | Задача | Статус | Контур | Результат |
 |---:|---|---|---|---|---|
-| 24 | CTA-BENCH-002 | Target Hardware OCR/VLM Benchmark | DONE | LOCAL_IDE | Выбран VLM-MLX-4B + TOPOLOGY-U, revision 20260801-091536. |
-| 25 | CTA-MODEL-001 | Production Local Model Profile | BLOCKED_LOCAL | HYBRID + LOCAL_IDE | Зафиксировать OCR/VLM/LLM, quantization, timeouts, fallback и ресурсы. |
+| 24 | CTA-BENCH-002 | Target Hardware LLM/VLM/OCR Benchmark | DONE | LOCAL_IDE | Выбран VLM-MLX-4B + TOPOLOGY-U, revision `20260801-091536`. |
+| 25 | CTA-MODEL-001 | Production Local Model Profile | DONE | HYBRID + LOCAL_IDE | Frozen VLM/LLM profile, exact identity gate, limits, resources и lifecycle acceptance приняты. |
+
+CTA-MODEL-001 close-out:
+
+- VLM `mlx-community/Qwen3-VL-4B-Instruct-4bit` на `127.0.0.1:8091`;
+- LLM `mlx-community/Qwen3.5-4B-MLX-4bit` на `127.0.0.1:8093`;
+- profile SHA-256 `6d7781ab249219dd8bbd93abd71dd96aac7fa094eb84f02aa1e861b8cfce6a1a`;
+- internal integrity `7796913472bb9de1f789c7a7ebaa0a0fab096c48f46e32580c107aab473c9698`;
+- cold start 6.1 s; warm p50/p90/max 39.5/39.6/39.6 s;
+- concurrency 1/2 PASS; residual processes 0;
+- three synthetic E2E cases, Client Report v2 и deterministic exports PASS;
+- GitHub CI PASS; local Mac mini acceptance PASS;
+- PR #73 merged as `9ce39017f7a36584f04592eba39382e85589b095`;
+- no client data committed; validated production accuracy не заявляется.
 
 ### Этап 5 — controlled pilot
 
@@ -161,14 +174,17 @@ CTA-VIS-002 (legacy CTA-017)
 
 Выполнены блоки A и B: загрузка материалов, локальная VLM, анализ, visual evidence, confidence/abstention, Ozon A/B outcomes, browser workspace и клиентские отчёты.
 
-### MVP для установки у заказчика — ориентировочно 65–75%
+### Локальный model contour для controlled pilot — 100%
 
-Кодовая и демонстрационная часть готова. Для управляемого развёртывания ещё нужны:
+Benchmark и frozen production model profile завершены. VLM/LLM identities, limits, resources, lifecycle и synthetic application-path acceptance зафиксированы на целевом Mac mini M4 Pro / 24 GB.
 
-1. экспертная калибровка в продукте — CTA-REVIEW-001/002, CTA-CAL-003;
-2. benchmark и production model profile — CTA-MODEL-001 (CTA-BENCH-002 — DONE);
-3. on-premise installation и security acceptance — CTA-DEPLOY-001, CTA-SEC-001;
-4. release bundle — CTA-RELEASE-001.
+### MVP для установки у заказчика — ориентировочно 75–85%
+
+Кодовая, демонстрационная, экспертная и локальная модельная части готовы. Для управляемого развёртывания ещё нужны:
+
+1. controlled pilot и methodology v2 — CTA-PILOT-002–006, CTA-METH-001–003;
+2. on-premise installation и security acceptance — CTA-DEPLOY-001, CTA-SEC-001;
+3. release bundle — CTA-RELEASE-001.
 
 ### Валидированный продукт — не завершён
 
@@ -177,16 +193,16 @@ Controlled pilot и methodology v2 ещё не проведены. Поэтом�
 ## 6. Ближайший канонический порядок
 
 ```text
-CTA-REVIEW-001
-→ CTA-REVIEW-002
-→ CTA-CAL-003
+CTA-REVIEW-001 — DONE
+→ CTA-REVIEW-002 — DONE
+→ CTA-CAL-003 — DONE
 → CTA-BENCH-002 — DONE
-→ CTA-MODEL-001
-→ CTA-PILOT-002
+→ CTA-MODEL-001 — DONE
+→ CTA-PILOT-002 — BLOCKED_CLIENT
 → CTA-PILOT-003
 → CTA-PILOT-004
 → CTA-PILOT-005
 → CTA-PILOT-006
 ```
 
-Параллельно после согласования инфраструктуры можно готовить CTA-DEPLOY-001, но закрыть его до production model profile нельзя.
+Текущий внешний gate — получение клиентского dataset для CTA-PILOT-002. Параллельно можно проектировать CTA-DEPLOY-001, но закрыть on-premise release до controlled pilot, methodology v2 и security acceptance нельзя.

@@ -1,14 +1,14 @@
 # Creative Test Agent — каноническая дорожная карта
 
-Версия: 2.0  
-Дата фиксации: 2026-07-31  
+Версия: 2.1  
+Дата фиксации: 2026-08-02  
 Статус документа: `canonical / single source of truth`
 
 ## Назначение
 
 Документ фиксирует канонический порядок задач, зависимости и фактический статус Creative Test Agent. Детализированная историческая редакция v1.8 сохранена в `docs/roadmap/archive/CREATIVE_TEST_AGENT_CANONICAL_ROADMAP_v1.8_2026-07-30.md`, но не является источником текущих статусов.
 
-Изменение v2.0 расширяет ближайшую локальную задачу `CTA-BENCH-002` до полного model-contour benchmark: LLM, VLM, OCR, hybrid и deployment topology на целевом Apple Silicon. Код задачи и её место в dependency chain не меняются.
+Изменение v2.1 закрывает `CTA-MODEL-001`: production local model profile заморожен и принят на целевом Mac mini M4 Pro / 24 GB. Блок локальных моделей завершён; следующий dependency gate — controlled pilot intake, заблокированный до получения клиентских данных.
 
 Правила:
 
@@ -29,7 +29,7 @@
 
 # Текущий рабочий контур
 
-На 2026-07-31 собран насыщенный локальный контур клиентской демонстрации:
+На 2026-08-02 собран насыщенный локальный контур клиентской демонстрации:
 
 `intake → mapping/DQ → campaign evidence → visual extraction → traceable diagnostics → confidence/abstention → client report → finding-level review → independent review → adjudication → calibration dashboard → deterministic exports`.
 
@@ -43,6 +43,7 @@
 - экспертные оценки и adjudication append-only;
 - dashboard показывает качество evidence/process, а не «точность модели»;
 - JSON/XLSX/report artifacts имеют integrity metadata;
+- production VLM/LLM profile заморожен, model identity проверяется до workload;
 - реальные клиентские материалы остаются в локальном закрытом контуре.
 
 Основной сценарий: `docs/demo/CLIENT_DEMO_FULL_CONTOUR_RU.md`.  
@@ -163,9 +164,9 @@
 | Порядок | Код | Каноническое имя | Статус | Контур | Зависит от |
 |---:|---|---|---|---|---|
 | 24 | CTA-BENCH-002 | Target Hardware LLM/VLM/OCR Benchmark | `DONE` | LOCAL_IDE | CTA-VIS-003, CTA-VISION-001 |
-| 25 | CTA-MODEL-001 | Production Local Model Profile | `BLOCKED_LOCAL` | HYBRID | CTA-BENCH-002 |
+| 25 | CTA-MODEL-001 | Production Local Model Profile | `DONE` | HYBRID + LOCAL_IDE | CTA-BENCH-002 |
 
-### 24. CTA-BENCH-002 — ближайшая задача
+### 24. CTA-BENCH-002 — Target Hardware LLM/VLM/OCR Benchmark
 
 **Статус: DONE** (2026-08-02).
 
@@ -183,9 +184,33 @@
 
 Полное локальное ТЗ: `docs/local/CTA-BENCH-002_MAC_MINI_OPENCODE.md`.
 
-### 25. CTA-MODEL-001 — следующий dependency gate
+### 25. CTA-MODEL-001 — Production Local Model Profile
 
-После benchmark фиксируется воспроизводимый production local model profile: OCR engine, VLM, LLM, runtime/server, quantization, context size, timeout, concurrency, fallback, image limits, load/unload policy, deployment topology и измеренные resource requirements.
+**Статус: DONE** (2026-08-02).
+
+Зафиксировано:
+
+- frozen profile: `config/model_profiles/production/cta_model_001.mac_mini_m4pro_24gb.frozen.json`;
+- profile file SHA-256 `6d7781ab249219dd8bbd93abd71dd96aac7fa094eb84f02aa1e861b8cfce6a1a`;
+- internal integrity hash `7796913472bb9de1f789c7a7ebaa0a0fab096c48f46e32580c107aab473c9698`;
+- benchmark manifest SHA-256 `dbf635a3bbc190ced05868acb18d3168eed8df50554a3c4f305c687f83075ddc`;
+- VLM: `mlx-community/Qwen3-VL-4B-Instruct-4bit`, loopback `127.0.0.1:8091`;
+- LLM: `mlx-community/Qwen3.5-4B-MLX-4bit`, loopback `127.0.0.1:8093`;
+- topology: `dual_server_resident`, benchmark label `TOPOLOGY-U` reconciled;
+- Tesseract 5.5.3 `rus+eng` — manual OCR fallback; automatic cloud fallback disabled;
+- request timeout 240 s, max concurrency 2, image limit 15 MiB / 4,194,304 px;
+- exact model identity gate через `/v1/models` и `/health loaded_model`;
+- cold start 6.1 s; warm p50/p90/max 39.5/39.6/39.6 s; concurrency 1/2 PASS; residual processes 0;
+- три synthetic application-path cases: normal, missing/unreadable, conflicting — PASS;
+- missing evidence сохраняется; invalid/unsupported output fail-closed;
+- Client Report v2 и deterministic exports прошли integrity validation;
+- targeted tests: 48 passed; GitHub baseline CI и profile-contract CI: PASS;
+- acceptance использовала только synthetic CTA-BENCH-002 data; no client data committed;
+- claim boundary: validated production accuracy, causal brand lift и numeric uplift prediction не заявляются;
+- реализация и acceptance: PR #73, main commit `9ce39017f7a36584f04592eba39382e85589b095`.
+
+Acceptance record: `docs/acceptance/CTA-MODEL-001.md`.  
+Операторское ТЗ: `docs/local/CTA-MODEL-001_MAC_MINI_OPENCODE.md`.
 
 ---
 
@@ -247,10 +272,8 @@ Release candidate должен включать release bundle, manifest, SBOM/d
 - масштабная brand memory/RAG;
 - synthetic focus groups как отдельный продукт.
 
-# Следующая задача
+# Следующий dependency gate
 
-К реализации первой запускается:
+`CTA-PILOT-002 — Real Case Intake and Data Quality Gate`.
 
-`CTA-MODEL-001 — Production Local Model Profile`.
-
-Контур: `HYBRID`. Dependency gate: CTA-BENCH-002 (DONE). Фиксирует воспроизводимый production local model profile на основе выбранного benchmark контура (VLM-MLX-4B + TOPOLOGY-U): OCR engine, VLM, LLM, runtime/server, quantization, context size, timeout, concurrency, fallback, image limits, load/unload policy, deployment topology и измеренные resource requirements. Реализация CTA-MODEL-001 вне текущего close-out.
+Статус: `BLOCKED_CLIENT`. Технические зависимости CTA-DATA-002, CTA-CAL-003 и CTA-MODEL-001 завершены. Для запуска требуется передача 15–20 чистых реальных кейсов с provenance, identifiers, creative files, placements, CG/TG counts, outcomes и описанием методологии. До получения клиентского dataset работа по controlled pilot не может быть закрыта честно.
