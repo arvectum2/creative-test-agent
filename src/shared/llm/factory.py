@@ -3,6 +3,7 @@ from src.shared.errors import AppError
 from src.shared.llm.base import LLMProvider
 from src.shared.llm.lmstudio import LMStudioProvider
 from src.shared.llm.ollama import OllamaProvider
+from src.shared.llm.openai_compatible_local import OpenAiCompatibleLocalProvider
 from src.shared.llm.policy import validate_llm_provider
 from src.shared.llm.stub import StubProvider
 
@@ -18,6 +19,8 @@ def get_llm_provider(settings: Settings | None = None) -> LLMProvider:
         return OllamaProvider()
     elif settings.llm_provider == "lmstudio":
         return LMStudioProvider()
+    elif settings.llm_provider == "openai_compatible_local":
+        return OpenAiCompatibleLocalProvider(settings)
     else:
         raise AppError(
             code="unknown_llm_provider",

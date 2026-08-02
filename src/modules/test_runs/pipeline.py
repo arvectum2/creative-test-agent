@@ -63,10 +63,6 @@ def _is_stub(provider: LLMProvider) -> bool:
 def _call_llm_json(provider: LLMProvider, prompt: str, stage_name: str = "") -> dict | None:
     result = provider.generate(prompt)
     content = result.get("content", "")
-    try:
-        return json.loads(content)
-    except (json.JSONDecodeError, TypeError):
-        pass
 
     if stage_name:
         import time
@@ -83,7 +79,12 @@ def _call_llm_json(provider: LLMProvider, prompt: str, stage_name: str = "") -> 
         )
         if stage_result.success and stage_result.parsed_data is not None:
             return stage_result.parsed_data
-    return None
+        return None
+
+    try:
+        return json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        return None
 
 
 def _parse_stage_result(raw: dict | None, default: dict) -> dict:

@@ -31,6 +31,34 @@ def test_call_llm_json_with_stage_uses_recovery():
     assert len(traces) >= 0  # trace may or may not be created based on settings
 
 
+class _FakeAudienceProvider:
+    """Emits valid JSON whose inner list elements violate the audience_simulation schema.
+    Regression for the E2E defect where Qwen3.5 returned positive_triggers as
+    [{'trigger': ...}] and the previous _call_llm_json bypassed schema validation."""
+
+    name = "fake_audience_provider"
+    model = "fake-model"
+
+    def generate(self, prompt: str) -> dict:
+        return {
+            "content": (
+                '{"reaction": "ok", '
+                '"positive_triggers": [{"trigger": "Clear text", "confidence": 0.9}], '
+                '"objections": [{"objection": "Ambiguity"}], '
+                '"engagement_probability": 0.4}'
+            )
+        }
+
+
+def test_call_llm_json_schema_violation_fails_closed():
+    """Valid JSON but schema-violating inner list elements must not bypass validation.
+    _call_llm_json must return None so the caller applies _parse_stage_result defaults."""
+    init_db()
+    provider = _FakeAudienceProvider()
+    result = _call_llm_json(provider, "test prompt", stage_name="audience_simulation")
+    assert result is None
+
+
 def test_process_stage_output_empty_response():
     init_db()
     result = process_stage_output("creative_summary", raw_response=None)
@@ -85,3 +113,93 @@ def test_validate_creative_summary():
 def test_validate_creative_summary_missing():
     result = validate_stage_output("creative_summary", {"summary": "s"})
     assert len(result.validation_errors) > 0
+
+
+def test_process_stage_output_audience_simulation_wrong_reaction_type_fallback():
+    """Regression: TOPOLOGY-U audience-simulation-missing returned 'reaction' as a dict
+    instead of str. Schema validation must fail and the stage must fall back fail-closed."""
+    init_db()
+    raw = (
+        '{"reaction": {"attention": "null", "comprehension_recall": "null"}, '
+        '"positive_triggers": [], "objections": [], "engagement_probability": 0}'
+    )
+    result = process_stage_output("audience_simulation", raw_response=raw)
+    assert result.validation_errors != []
+    assert any("reaction" in e for e in result.validation_errors)
+    assert result.fallback_used is True
+    assert result.parsed_data == get_fallback("audience_simulation")
+    assert result.parsed_data["reaction"] == "Audience simulation could not be generated reliably."
+
+
+def test_process_stage_output_thinking_text_with_json_extracts_safely():
+    """Thinking text with a valid embedded JSON object is recovered by the parser contract
+    (block extraction), so it does not fall back and does not poison downstream."""
+    init_db()
+    raw = (
+        "Thinking Process:\n1. Analyze.\n"
+        '{"summary": "ok", "key_message": "k", "tone": "t", "target_audience_vibe": "v"}'
+    )
+    result = process_stage_output("creative_summary", raw_response=raw)
+    assert result.extracted is True
+    assert result.success
+    assert not result.fallback_used
+    assert result.parsed_data["summary"] == "ok"
+
+
+def test_process_stage_output_thinking_text_with_malformed_json_fail_closed():
+    """Thinking text around malformed JSON must not be accepted as structured output."""
+    init_db()
+    raw = "Thinking Process:\n1. Analyze.\n{\"summary\": \"ok\", "
+    result = process_stage_output("creative_summary", raw_response=raw)
+    assert result.fallback_used is True
+    assert result.parsed_data == get_fallback("creative_summary")
+
+
+def test_process_stage_output_malformed_json_fail_closed():
+    init_db()
+    result = process_stage_output("final_recommendation", raw_response='{"final_recommendation": "publish", ')
+    assert result.fallback_used is True
+    assert result.parsed_data == get_fallback("final_recommendation")
+
+
+def test_process_stage_output_schema_mismatch_fail_closed():
+    """Valid JSON but not matching the stage schema must not reach downstream as valid."""
+    init_db()
+    raw = '{"unexpected_key": true, "scorecard": []}'
+    result = process_stage_output("rubric_scoring", raw_response=raw)
+    assert result.validation_errors != []
+    assert result.fallback_used is True
+    assert result.parsed_data == get_fallback("rubric_scoring")
+
+
+def test_process_stage_output_list_element_wrong_type_fail_closed():
+    """Regression (E2E): Qwen3.5 returned positive_triggers as [{'trigger': ...}].
+    Inner elements must be validated so the invalid output fails closed instead of
+    crashing downstream AudienceReaction construction."""
+    init_db()
+    raw = (
+        '{"reaction": "ok", '
+        '"positive_triggers": [{"trigger": "Clear text", "confidence": 0.9}], '
+        '"objections": [{"objection": "Visual ambiguity"}], '
+        '"engagement_probability": 0.4}'
+    )
+    result = process_stage_output("audience_simulation", raw_response=raw)
+    assert result.validation_errors != []
+    assert any("positive_triggers[0]" in e for e in result.validation_errors)
+    assert any("objections[0]" in e for e in result.validation_errors)
+    assert result.fallback_used is True
+    assert result.parsed_data == get_fallback("audience_simulation")
+
+
+def test_process_stage_output_list_element_str_is_valid():
+    init_db()
+    raw = (
+        '{"reaction": "ok", '
+        '"positive_triggers": ["Clear text"], '
+        '"objections": ["Ambiguity"], '
+        '"engagement_probability": 0.4}'
+    )
+    result = process_stage_output("audience_simulation", raw_response=raw)
+    assert result.validation_errors == []
+    assert result.success
+    assert not result.fallback_used
