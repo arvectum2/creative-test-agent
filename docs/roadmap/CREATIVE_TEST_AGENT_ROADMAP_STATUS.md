@@ -81,7 +81,7 @@ CTA-VIS-002 (legacy CTA-017)
 
 | № | Канонический ID | Задача | Статус | Контур | Следующее действие |
 |---:|---|---|---|---|---|
-| 24 | CTA-BENCH-002 | Target Hardware OCR/VLM Benchmark | BLOCKED_LOCAL | LOCAL_IDE | Сравнить минимум OCR-only, VLM-only и hybrid на целевом железе. |
+| 24 | CTA-BENCH-002 | Target Hardware OCR/VLM Benchmark | DONE | LOCAL_IDE | Выбран VLM-MLX-4B + TOPOLOGY-U, revision 20260801-091536. |
 | 25 | CTA-MODEL-001 | Production Local Model Profile | BLOCKED_LOCAL | HYBRID + LOCAL_IDE | Зафиксировать OCR/VLM/LLM, quantization, timeouts, fallback и ресурсы. |
 
 ### Этап 5 — controlled pilot
@@ -166,7 +166,7 @@ CTA-VIS-002 (legacy CTA-017)
 Кодовая и демонстрационная часть готова. Для управляемого развёртывания ещё нужны:
 
 1. экспертная калибровка в продукте — CTA-REVIEW-001/002, CTA-CAL-003;
-2. benchmark и production model profile — CTA-BENCH-002, CTA-MODEL-001;
+2. benchmark и production model profile — CTA-MODEL-001 (CTA-BENCH-002 — DONE);
 3. on-premise installation и security acceptance — CTA-DEPLOY-001, CTA-SEC-001;
 4. release bundle — CTA-RELEASE-001.
 
@@ -180,7 +180,7 @@ Controlled pilot и methodology v2 ещё не проведены. Поэтом�
 CTA-REVIEW-001
 → CTA-REVIEW-002
 → CTA-CAL-003
-→ CTA-BENCH-002
+→ CTA-BENCH-002 — DONE
 → CTA-MODEL-001
 → CTA-PILOT-002
 → CTA-PILOT-003
