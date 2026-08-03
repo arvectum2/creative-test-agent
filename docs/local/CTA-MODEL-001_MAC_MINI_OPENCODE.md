@@ -145,6 +145,60 @@ PY
 
 Заполнить `vision.runtime.version`, `vision.runtime.python_version`, `llm.runtime.version`, `llm.runtime.python_version`. В `runtime.version` записать server package + version в однозначном виде.
 
+#### 4.2.1 LLM compatibility pin
+
+Зафиксированный runtime-контракт LLM находится в:
+
+```text
+config/model_profiles/runtime/cta_model_001.llm.requirements.txt
+```
+
+Содержимое:
+
+```text
+mlx-openai-server==1.3.12
+mlx-lm==0.31.3
+```
+
+Причина pin:
+
+```text
+mlx-lm==0.28.3 cannot load model_type=qwen3_5 and fails with:
+ValueError: Model type qwen3_5 not supported
+```
+
+`mlx-openai-server==1.3.12` тянет `mlx-lm` транзитивно; без явного pin bootstrap может молча установить несовместимый `mlx-lm==0.28.3`. Поэтому LLM environment создаётся через exact requirements-файл, а не установкой `mlx-openai-server` отдельно.
+
+Восстановление LLM environment:
+
+```bash
+"$CTA_LLM_PYTHON" -m pip install \
+  -r config/model_profiles/runtime/cta_model_001.llm.requirements.txt
+```
+
+Verify установки:
+
+```bash
+"$CTA_LLM_PYTHON" - <<'PY'
+import importlib.metadata as m
+
+expected = {
+    "mlx-openai-server": "1.3.12",
+    "mlx-lm": "0.31.3",
+}
+
+errors = []
+for package, version in expected.items():
+    actual = m.version(package)
+    print(package, actual)
+    if actual != version:
+        errors.append(f"{package}: expected {version}, got {actual}")
+
+if errors:
+    raise SystemExit("; ".join(errors))
+PY
+```
+
 ### 4.3 Model source revision и local hash
 
 Для каждой Hugging Face model определить exact resolved commit SHA из cache metadata/snapshot path. Не использовать `main`, `latest` или дату вместо revision.

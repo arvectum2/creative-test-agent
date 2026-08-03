@@ -1,0 +1,9 @@
+# CTA-MODEL-001 frozen LLM runtime dependency contract
+# mlx-lm 0.28.3 does not support model_type=qwen3_5.
+# Accepted local runtime: mlx-openai-server 1.3.12 + mlx-lm 0.31.3.
+#
+# Exact pins only. Do not relax to ranges or unpinned names: the frozen
+# production runtime must be reproducible bit-for-bit.
+
+mlx-openai-server==1.3.12
+mlx-lm==0.31.3
