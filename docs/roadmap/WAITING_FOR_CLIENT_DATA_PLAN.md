@@ -4,7 +4,7 @@ Source: canonical roadmap v2.2, 2026-08-04.
 
 ## Order
 
-1. `CTA-RUNTIME-002` — fix graceful shutdown false negative.
+1. `CTA-RUNTIME-002` — fix graceful shutdown false negative — **DONE** (issue #78, main `36031f8`).
 2. `CTA-PILOT-PREP-001` — implement synthetic controlled-pilot intake orchestration.
 3. `CTA-PILOT-PREP-002` — implement immutable blind-run freeze and leakage barriers.
 4. `CTA-PILOT-PREP-003` — rehearse the complete controlled pilot on synthetic cases.
@@ -15,7 +15,7 @@ Source: canonical roadmap v2.2, 2026-08-04.
 
 | Task | Browser/GitHub | OpenCode/Codex | Client input |
 |---|---|---|---|
-| CTA-RUNTIME-002 | implementation, tests, CI | final Mac mini lifecycle acceptance | no |
+| CTA-RUNTIME-002 | implementation, tests, CI | final Mac mini lifecycle acceptance — **DONE** | no |
 | CTA-PILOT-PREP-001 | complete implementation and synthetic acceptance | optional browser smoke | no |
 | CTA-PILOT-PREP-002 | complete implementation and synthetic acceptance | optional local role-boundary smoke | no |
 | CTA-PILOT-PREP-003 | fixtures, harness, tests, docs | full local model/browser rehearsal | no |

@@ -9,7 +9,7 @@ Current state:
 - Blocks A–D: complete;
 - Block E: blocked on client data;
 - Waiting-for-Data Lane: active;
-- next task: `CTA-RUNTIME-002 — Graceful Shutdown Completion`;
-- next major pre-client task: `CTA-PILOT-PREP-001 — Controlled Pilot Intake Orchestration`.
+- next task: `CTA-PILOT-PREP-001 — Controlled Pilot Intake Orchestration`;
+- next major pre-client task: `CTA-PILOT-PREP-002 — Frozen Blind Run Infrastructure`.
 
 The previous unversioned roadmap file remains a historical v2.1 status document and must not be used to determine current task priority.

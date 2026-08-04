@@ -136,7 +136,7 @@ Pilot boundary:
 | Приоритет | Код | Каноническое имя | Статус | Контур | Что даёт |
 |---:|---|---|---|---|---|
 | W01 | CTA-ARCH-001 | Structural Technical Debt Elimination | `DONE` | GITHUB | Декомпозиция монолитов, app factory/lifespan, нулевой exception budget и structural CI gate. |
-| W02 | CTA-RUNTIME-002 | Graceful Shutdown Completion | `PLANNED` | HYBRID | Один `stop` ждёт полный grace period и не выдаёт ложный FAIL; issue #78. |
+| W02 | CTA-RUNTIME-002 | Graceful Shutdown Completion | `DONE` | HYBRID | Один `stop` ждёт полный grace period и не выдаёт ложный FAIL; issue #78. |
 | W03 | CTA-PILOT-PREP-001 | Controlled Pilot Intake Orchestration | `PLANNED` | GITHUB | Case register, inclusion states, DQ summary и project-scoped UI/API на synthetic fixtures. |
 | W04 | CTA-PILOT-PREP-002 | Frozen Blind Run Infrastructure | `PLANNED` | GITHUB | Immutable output hash, prompt/model versions, outcome-access separation и replay protection. |
 | W05 | CTA-PILOT-PREP-003 | Synthetic Controlled Pilot Rehearsal | `PLANNED` | HYBRID | Полная репетиция intake → blind run → two-reviewer adjudication → dashboard → summary без client data. |
@@ -158,6 +158,8 @@ Pilot boundary:
 
 ### W02 — CTA-RUNTIME-002 acceptance
 
+Завершено PR #86 (implementation) + status close-out на main commit `36031f8`:
+
 - normal asynchronous shutdown завершается одним `stop`;
 - команда ждёт полный configured grace period;
 - force-kill применяется только после grace period;
@@ -165,7 +167,7 @@ Pilot boundary:
 - PID files удаляются после фактического exit;
 - residual process count = 0;
 - есть regression test delayed shutdown;
-- local Mac mini acceptance — PASS.
+- local Mac mini acceptance — PASS (synthetic delayed-shutdown regression 5/5, real MLX lifecycle 3/3 с одним stop на цикл, warm/delayed lifecycle PASS, force-kill на normal path 0/3).
 
 ### W03 — CTA-PILOT-PREP-001 acceptance
 
@@ -227,8 +229,7 @@ Pilot boundary:
 До данных заказчика:
 
 ```text
-CTA-RUNTIME-002
-→ CTA-PILOT-PREP-001
+CTA-PILOT-PREP-001
 → CTA-PILOT-PREP-002
 → CTA-PILOT-PREP-003
 → CTA-RELEASE-PREP-001
@@ -252,6 +253,4 @@ CTA-PILOT-002
 
 ## 7. Следующая задача
 
-`CTA-RUNTIME-002 — Graceful Shutdown Completion`.
-
-После неё первая крупная pre-client задача — `CTA-PILOT-PREP-001 — Controlled Pilot Intake Orchestration`.
+`CTA-PILOT-PREP-001 — Controlled Pilot Intake Orchestration`.

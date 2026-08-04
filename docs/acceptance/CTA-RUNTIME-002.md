@@ -1,9 +1,10 @@
 # CTA-RUNTIME-002 — Graceful Shutdown Completion Acceptance
 
-Статус: `GITHUB ACCEPTED / BLOCKED_LOCAL`  
+Статус: `DONE`  
 Issue: `#78`  
 Implementation PR: `#86`  
 GitHub acceptance head: `279146903a04f24f36c3b496ce6a958ab0feaf4a`  
+Close-out main: `36031f8a182cb07a9645744e4fc25aa062d42ba6`  
 Execution mode: `HYBRID`  
 Зависимость: `CTA-MODEL-001 — DONE`
 
@@ -33,20 +34,31 @@ GitHub evidence на implementation head:
 
 ## Local Mac mini acceptance
 
-- [ ] frozen profile validation PASS;
-- [ ] exact MLX runtime/dependency pins unchanged;
-- [ ] one stop per normal lifecycle, minimum 3 cycles;
-- [ ] warm/delayed MLX lifecycle PASS with one stop;
-- [ ] ports 8091 and 8093 free after every stop;
-- [ ] PID files removed after exit;
-- [ ] residual process count 0;
-- [ ] no premature FAIL;
-- [ ] no client data, model weights, local paths or runtime logs committed;
-- [ ] sanitized evidence posted to issue #78.
+- [x] frozen profile validation PASS;
+- [x] exact MLX runtime/dependency pins unchanged;
+- [x] one stop per normal lifecycle, minimum 3 cycles;
+- [x] warm/delayed MLX lifecycle PASS with one stop;
+- [x] ports 8091 and 8093 free after every stop;
+- [x] PID files removed after exit;
+- [x] residual process count 0;
+- [x] no premature FAIL;
+- [x] no client data, model weights, local paths or runtime logs committed;
+- [x] sanitized evidence posted to issue #78.
+
+Local Mac mini evidence (main `36031f8`):
+
+- synthetic delayed-shutdown regression: 5/5 PASS;
+- real MLX normal lifecycle: 3/3 PASS, один stop на цикл (llm ≈0.53s, vision ≈0.27s, force-kill не использован);
+- warm/delayed lifecycle: PASS с одним stop после VLM/LLM smoke;
+- premature FAIL: 0;
+- force-kill on normal path: 0/3;
+- ports после каждого stop: 8091/8093 free; PID files removed; residual 0;
+- targeted tests: 22 PASS;
+- GitHub CI на `36031f8`: все applicable workflows success.
 
 ## Close-out rule
 
-Issue #78 и статус roadmap нельзя переводить в `DONE` до прохождения реального Mac mini lifecycle acceptance. После local PASS создаётся отдельный status-only close-out PR с обезличенной записью результата.
+Issue #78 и статус roadmap переводятся в `DONE` только после прохождения реального Mac mini lifecycle acceptance. Local PASS подтверждён; close-out зафиксирован status-only PR на main `36031f8`.
 
 ## Claim boundary
 
