@@ -48,6 +48,7 @@ def init_db():
     from src.shared.db.base import Base
     import src.modules.audit_log.models  # noqa: F401
     import src.modules.audience_profiles.models  # noqa: F401
+    import src.modules.blind_runs.models  # noqa: F401
     import src.modules.brand_profiles.models  # noqa: F401
     import src.modules.creative_assets.models  # noqa: F401
     import src.modules.report_generator.models  # noqa: F401

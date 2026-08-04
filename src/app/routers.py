@@ -14,6 +14,7 @@ from src.modules.audience_profiles.router import router as audience_profiles_rou
 from src.modules.auth.router import router as auth_router
 from src.modules.auth.ui_router import router as auth_ui_router
 from src.modules.batches.router import router as batches_router
+from src.modules.blind_runs.router import router as blind_runs_router
 from src.modules.brand_profiles.router import router as brand_profiles_router
 from src.modules.brandbooks.router import router as brandbooks_router
 from src.modules.calibration_dashboard.router import router as calibration_dashboard_router
@@ -98,6 +99,7 @@ ROUTERS: tuple[RouterRegistration, ...] = (
     RouterRegistration(finding_reviews_router),
     RouterRegistration(calibration_dashboard_router),
     RouterRegistration(pilot_intake_router),
+    RouterRegistration(blind_runs_router),
     RouterRegistration(job_queue_router),
     RouterRegistration(batches_router),
     RouterRegistration(import_sessions_router),

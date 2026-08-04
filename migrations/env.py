@@ -10,6 +10,7 @@ from src.shared.db.base import Base
 # with src.shared.db.session.init_db; scripts/check_model_registry.py enforces it.
 import src.modules.audit_log.models  # noqa: F401
 import src.modules.audience_profiles.models  # noqa: F401
+import src.modules.blind_runs.models  # noqa: F401
 import src.modules.brand_profiles.models  # noqa: F401
 import src.modules.creative_assets.models  # noqa: F401
 import src.modules.report_generator.models  # noqa: F401

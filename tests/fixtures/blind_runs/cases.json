@@ -1,0 +1,31 @@
+{
+  "diagnostic_output": {
+    "verdict": "revise",
+    "findings": [
+      {
+        "finding_id": "SYN-FINDING-001",
+        "dimension": "clarity",
+        "severity": "medium",
+        "evidence": "Synthetic headline has two competing claims"
+      }
+    ],
+    "limitations": ["synthetic fixture only"]
+  },
+  "rerun_output": {
+    "verdict": "pass_with_notes",
+    "findings": [
+      {
+        "finding_id": "SYN-FINDING-002",
+        "dimension": "trust",
+        "severity": "low",
+        "evidence": "Synthetic disclaimer remains visually secondary"
+      }
+    ],
+    "limitations": ["synthetic rerun only"]
+  },
+  "outcome_payload": {
+    "actual_result": "SYNTHETIC-SECRET-OUTCOME-731",
+    "observed_conversions": 731,
+    "observation_window": "synthetic-14d"
+  }
+}
