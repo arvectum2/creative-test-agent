@@ -5,22 +5,32 @@ on:
     paths:
       - "config/model_profiles/**"
       - "docs/model_profile/**"
+      - "docs/acceptance/CTA-RUNTIME-002.md"
       - "docs/local/CTA-MODEL-001_MAC_MINI_OPENCODE.md"
+      - "docs/local/CTA-RUNTIME-002_MAC_MINI_OPENCODE.md"
       - "scripts/cta_model_001.py"
       - "src/shared/model_profile/**"
       - "src/modules/model_profiles/**"
       - "tests/test_cta_model_001_profile.py"
+      - "tests/test_cta_model_001_runtime_dependencies.py"
+      - "tests/test_cta_runtime_002_shutdown.py"
       - "tests/test_model_profiles_openai_compatible_local.py"
       - ".github/workflows/cta-model-001.yml"
   push:
     branches: [main]
     paths:
       - "config/model_profiles/**"
+      - "docs/model_profile/**"
+      - "docs/acceptance/CTA-RUNTIME-002.md"
+      - "docs/local/CTA-RUNTIME-002_MAC_MINI_OPENCODE.md"
       - "scripts/cta_model_001.py"
       - "src/shared/model_profile/**"
       - "src/modules/model_profiles/**"
       - "tests/test_cta_model_001_profile.py"
+      - "tests/test_cta_model_001_runtime_dependencies.py"
+      - "tests/test_cta_runtime_002_shutdown.py"
       - "tests/test_model_profiles_openai_compatible_local.py"
+      - ".github/workflows/cta-model-001.yml"
 
 permissions:
   contents: read
@@ -82,11 +92,13 @@ jobs:
             python scripts/cta_model_001.py validate --mode frozen --profile "$profile"
           done
 
-      - name: Run profile tests
+      - name: Run profile and shutdown tests
         run: |
           python scripts/run_migrations.py
           python -m pytest \
             tests/test_cta_model_001_profile.py \
+            tests/test_cta_model_001_runtime_dependencies.py \
+            tests/test_cta_runtime_002_shutdown.py \
             tests/test_model_profiles_openai_compatible_local.py \
             tests/test_openai_compatible_local_provider.py \
             tests/test_vlm_analyzer_normalization.py \

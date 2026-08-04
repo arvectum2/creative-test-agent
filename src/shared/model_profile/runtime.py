@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import signal
+import socket
 import subprocess
 import time
 import urllib.error
@@ -51,6 +52,17 @@ class ComponentStatus:
             "identity_match": self.identity_match,
             "detail": self.detail,
         }
+
+
+@dataclass(frozen=True)
+class _ShutdownObservation:
+    pid_alive: bool
+    process_group_alive: bool
+    port_open: bool
+
+    @property
+    def complete(self) -> bool:
+        return not (self.pid_alive or self.process_group_alive or self.port_open)
 
 
 def _runtime_root(profile: Mapping[str, Any], repository_root: str | Path = ".") -> Path:
@@ -100,6 +112,116 @@ def _pgid_alive(pgid: int | None) -> bool:
         return True
     except (ProcessLookupError, PermissionError, OSError):
         return False
+
+
+def _port_open(host: str, port: int, *, timeout_seconds: float = 0.1) -> bool:
+    try:
+        with socket.create_connection((host, int(port)), timeout=timeout_seconds):
+            return True
+    except (ConnectionRefusedError, TimeoutError, OSError):
+        return False
+
+
+def _shutdown_observation(
+    profile: Mapping[str, Any],
+    component: str,
+    *,
+    pid: int | None,
+    pgid: int | None,
+) -> _ShutdownObservation:
+    endpoint = profile[component]["endpoint"]
+    return _ShutdownObservation(
+        pid_alive=_pid_alive(pid),
+        process_group_alive=_pgid_alive(pgid),
+        port_open=_port_open(str(endpoint["host"]), int(endpoint["port"])),
+    )
+
+
+def _wait_for_shutdown(
+    profile: Mapping[str, Any],
+    component: str,
+    *,
+    pid: int | None,
+    pgid: int | None,
+    timeout_seconds: float,
+    poll_interval_seconds: float = 0.25,
+) -> _ShutdownObservation:
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    observation = _shutdown_observation(profile, component, pid=pid, pgid=pgid)
+    while not observation.complete:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        time.sleep(min(poll_interval_seconds, remaining))
+        observation = _shutdown_observation(profile, component, pid=pid, pgid=pgid)
+    return observation
+
+
+def _send_process_group_signal(pgid: int | None, sig: signal.Signals) -> bool:
+    if not _pgid_alive(pgid):
+        return False
+    try:
+        os.killpg(int(pgid), sig)
+        return True
+    except ProcessLookupError:
+        return False
+
+
+def _process_group_members(pgid: int | None) -> tuple[int, ...] | None:
+    if not isinstance(pgid, int) or pgid <= 0:
+        return ()
+    try:
+        result = subprocess.run(
+            ["ps", "-axo", "pid=,pgid="],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+    members: list[int] = []
+    for line in result.stdout.splitlines():
+        fields = line.split()
+        if len(fields) != 2:
+            continue
+        try:
+            member_pid, member_pgid = (int(value) for value in fields)
+        except ValueError:
+            continue
+        if member_pgid == pgid:
+            members.append(member_pid)
+    return tuple(sorted(set(members)))
+
+
+def _residual_process_count(pid: int | None, pgid: int | None) -> int:
+    members = _process_group_members(pgid)
+    if members is not None:
+        return len(members)
+    return int(_pid_alive(pid) or _pgid_alive(pgid))
+
+
+def _pid_record_errors(
+    profile: Mapping[str, Any],
+    component: str,
+    record: Mapping[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    pid = record.get("pid")
+    pgid = record.get("process_group_id")
+    if record.get("component") != component:
+        errors.append(f"component mismatch: expected {component!r}")
+    if not isinstance(pid, int) or pid <= 0:
+        errors.append("PID is missing or invalid")
+    if not isinstance(pgid, int) or pgid <= 0:
+        errors.append("process_group_id is missing or invalid")
+    if isinstance(pid, int) and isinstance(pgid, int) and pid != pgid:
+        errors.append("PID record does not own a separate process group")
+    expected_hash = profile.get("integrity", {}).get("profile_sha256")
+    if expected_hash and record.get("profile_sha256") != expected_hash:
+        errors.append("profile SHA-256 ownership mismatch")
+    return errors
 
 
 def fetch_served_models(server: Mapping[str, Any], timeout_seconds: float = 5.0) -> tuple[str, ...]:
@@ -306,44 +428,130 @@ def _stop_one(profile: Mapping[str, Any], component: str, repository_root: str |
     root = _runtime_root(profile, repository_root)
     path = _pid_path(root, component)
     record = _read_pid(path)
+    endpoint = profile[component]["endpoint"]
+    port = int(endpoint["port"])
+    started_at = time.monotonic()
+
     if not record:
-        return {"component": component, "stopped": True, "residual": False, "detail": "no PID record"}
-    pid = record.get("pid")
-    pgid = record.get("process_group_id")
+        port_open = _port_open(str(endpoint["host"]), port)
+        return {
+            "component": component,
+            "stopped": not port_open,
+            "residual": port_open,
+            "residual_process_count": 0,
+            "pid": None,
+            "process_group_id": None,
+            "port": port,
+            "port_free": not port_open,
+            "pid_file_removed": not path.exists(),
+            "graceful_signal_sent": False,
+            "force_kill_used": False,
+            "elapsed_seconds": round(time.monotonic() - started_at, 3),
+            "detail": (
+                "already stopped; no PID record and endpoint port is free"
+                if not port_open
+                else "no PID record; endpoint port remains in use and cannot be stopped safely"
+            ),
+        }
+
+    ownership_errors = _pid_record_errors(profile, component, record)
+    pid = record.get("pid") if isinstance(record.get("pid"), int) else None
+    pgid = record.get("process_group_id") if isinstance(record.get("process_group_id"), int) else None
+    if ownership_errors:
+        port_open = _port_open(str(endpoint["host"]), port)
+        return {
+            "component": component,
+            "stopped": False,
+            "residual": True,
+            "residual_process_count": _residual_process_count(pid, pgid),
+            "pid": pid,
+            "process_group_id": pgid,
+            "port": port,
+            "port_free": not port_open,
+            "pid_file_removed": False,
+            "graceful_signal_sent": False,
+            "force_kill_used": False,
+            "elapsed_seconds": round(time.monotonic() - started_at, 3),
+            "detail": "PID ownership verification failed: " + "; ".join(ownership_errors),
+        }
+
     policy = profile["topology"]["process_policy"]
-    graceful = int(policy["graceful_shutdown_seconds"])
-    forced = int(policy["force_kill_seconds"])
+    graceful = float(policy["graceful_shutdown_seconds"])
+    forced = float(policy["force_kill_seconds"])
+    observation = _shutdown_observation(profile, component, pid=pid, pgid=pgid)
+    graceful_signal_sent = False
+    force_kill_used = False
 
-    if _pgid_alive(pgid):
-        try:
-            os.killpg(pgid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        deadline = time.monotonic() + graceful
-        while time.monotonic() < deadline and _pgid_alive(pgid):
-            time.sleep(0.25)
-    if _pgid_alive(pgid):
-        try:
-            os.killpg(pgid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        deadline = time.monotonic() + forced
-        while time.monotonic() < deadline and _pgid_alive(pgid):
-            time.sleep(0.25)
+    if not observation.complete:
+        graceful_signal_sent = _send_process_group_signal(pgid, signal.SIGTERM)
+        observation = _wait_for_shutdown(
+            profile,
+            component,
+            pid=pid,
+            pgid=pgid,
+            timeout_seconds=graceful,
+        )
 
-    residual = _pgid_alive(pgid) or _pid_alive(pid)
+    if not observation.complete:
+        force_kill_used = _send_process_group_signal(pgid, signal.SIGKILL)
+        observation = _wait_for_shutdown(
+            profile,
+            component,
+            pid=pid,
+            pgid=pgid,
+            timeout_seconds=forced,
+        )
+
+    residual_process_count = _residual_process_count(pid, pgid)
+    residual = not observation.complete or residual_process_count > 0
+    pid_file_error: str | None = None
     if not residual:
         try:
             path.unlink()
         except FileNotFoundError:
             pass
+        except OSError as exc:
+            pid_file_error = f"cannot remove PID record: {type(exc).__name__}: {exc}"
+    pid_file_removed = not path.exists()
+    stopped = not residual and pid_file_removed
+
+    if stopped:
+        if force_kill_used:
+            detail = "stopped cleanly after force-kill verification"
+        elif graceful_signal_sent:
+            detail = "stopped cleanly within graceful shutdown period"
+        else:
+            detail = "already stopped; stale PID record removed"
+    else:
+        failures: list[str] = []
+        if observation.process_group_alive:
+            failures.append("residual process group remains")
+        if observation.pid_alive:
+            failures.append("owned PID remains alive")
+        if observation.port_open:
+            failures.append(f"port {port} remains in use")
+        if residual_process_count:
+            failures.append(f"residual process count is {residual_process_count}")
+        if pid_file_error:
+            failures.append(pid_file_error)
+        if not pid_file_removed:
+            failures.append("PID record retained")
+        detail = "; ".join(failures) or "shutdown verification failed"
+
     return {
         "component": component,
-        "stopped": not residual,
+        "stopped": stopped,
         "residual": residual,
+        "residual_process_count": residual_process_count,
         "pid": pid,
         "process_group_id": pgid,
-        "detail": "residual process group remains" if residual else "stopped cleanly",
+        "port": port,
+        "port_free": not observation.port_open,
+        "pid_file_removed": pid_file_removed,
+        "graceful_signal_sent": graceful_signal_sent,
+        "force_kill_used": force_kill_used,
+        "elapsed_seconds": round(time.monotonic() - started_at, 3),
+        "detail": detail,
     }
 
 
@@ -357,7 +565,7 @@ def stop_runtime(
     if any(name not in {"vision", "llm"} for name in names):
         raise ValueError(f"unsupported component selector: {component}")
     rows = [_stop_one(profile, name, repository_root) for name in reversed(names)]
-    residual = [row for row in rows if row["residual"]]
-    if residual:
-        raise ProfileValidationError([f"{row['component']}: {row['detail']}" for row in residual])
+    failures = [row for row in rows if not row["stopped"]]
+    if failures:
+        raise ProfileValidationError([f"{row['component']}: {row['detail']}" for row in failures])
     return rows

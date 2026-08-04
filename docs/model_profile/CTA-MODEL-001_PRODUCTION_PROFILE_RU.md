@@ -1,6 +1,6 @@
 # CTA-MODEL-001 — Production Local Model Profile
 
-Статус: `GITHUB READY / LOCAL FREEZE REQUIRED`  
+Статус: `DONE`; runtime reliability follow-up `CTA-RUNTIME-002` выполняется отдельно  
 Каноническая задача: `CTA-MODEL-001`  
 GitHub issue: `#72`  
 Целевое железо: **Mac mini Apple M4 Pro, 24 GB unified memory**  
@@ -109,15 +109,39 @@ python scripts/cta_model_001.py status --profile <FROZEN_PROFILE_JSON>
 python scripts/cta_model_001.py stop --profile <FROZEN_PROFILE_JSON>
 ```
 
-Гарантии:
+Гарантии запуска:
 
 - отдельная process group для каждого server;
 - PID/log root только в `.local/cta-model-001/`;
-- model identity проверяется через `/v1/models` до допуска workload;
-- остановка: SIGTERM → timeout → SIGKILL;
-- остаточная process group является acceptance failure.
+- PID record привязан к component, process group и `integrity.profile_sha256`;
+- model identity проверяется через `/v1/models` до допуска workload.
+
+Гарантии остановки после `CTA-RUNTIME-002`:
+
+1. Один вызов `stop` отправляет `SIGTERM` каждой принадлежащей профилю process group.
+2. CLI опрашивает одновременно PID, process group и loopback-порт в течение всего `graceful_shutdown_seconds` либо до подтверждённого завершения.
+3. `SIGKILL` используется только если после grace period остаётся PID, process group или занятый порт.
+4. После force-kill CLI повторно ждёт `force_kill_seconds` и выполняет финальную проверку.
+5. PID file удаляется только после подтверждённого exit, освобождения порта и нулевого residual process count.
+6. Если PID record отсутствует, но профильный порт занят, CLI не пытается убить неизвестный процесс и завершает операцию с fail-safe ошибкой.
+
+Успешный JSON-ответ для каждого component содержит минимум:
+
+```text
+stopped=true
+residual=false
+residual_process_count=0
+port_free=true
+pid_file_removed=true
+graceful_signal_sent=true|false
+force_kill_used=true|false
+```
+
+Повторный `stop` для уже остановленного component идемпотентен, если PID record отсутствует и порт свободен. При ownership mismatch PID record сохраняется, неизвестный процесс не сигнализируется.
 
 Для `dual_server_sequential` команда `start --component all` запрещена: оператор должен явно запускать `vision` или `llm`.
+
+Локальная приёмка lifecycle: `docs/local/CTA-RUNTIME-002_MAC_MINI_OPENCODE.md`.
 
 ## 6. Привязка к приложению
 
@@ -141,7 +165,7 @@ CTA_VISION_TIMEOUT_SECONDS=240
 
 ## 7. Model profile registry
 
-DB registry теперь поддерживает `openai_compatible_local`:
+DB registry поддерживает `openai_compatible_local`:
 
 - разрешены только loopback URL;
 - требуется explicit model ID;
@@ -156,17 +180,14 @@ DB registry теперь поддерживает `openai_compatible_local`:
 config/model_profiles/cta-model-001-llm.example.json
 ```
 
-## 8. Что остаётся локальным
+## 8. Локальные артефакты и границы данных
 
-В GitHub нельзя достоверно заполнить:
+Локально остаются:
 
-- exact macOS/build и Python versions;
-- exact package/runtime versions;
-- Hugging Face source revisions;
-- локальные SHA-256 model directories и Tesseract language data;
-- exact context/image limits фактической приёмки;
-- cold/warm/resource/disk/concurrency envelope;
-- operational topology reconciliation;
-- benchmark artifact manifest hash.
+- model weights и cache;
+- absolute paths к Python environments и model directories;
+- runtime PID/log files;
+- raw benchmark и lifecycle logs;
+- клиентские assets, prompts, outputs, screenshots, DB и generated reports.
 
-Эти поля заполняются по `docs/local/CTA-MODEL-001_MAC_MINI_OPENCODE.md`. До этого профиль остаётся `draft`, issue не закрывается и roadmap не переводится в `DONE`.
+В Git допустимы только sanitized versions, model identities, hashes, aggregate metrics, код, synthetic fixtures и обезличенная acceptance summary.
