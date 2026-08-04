@@ -1,11 +1,11 @@
 # Creative Test Agent Roadmap
 
-The canonical implementation roadmap is maintained in:
+The stable entry point for the current roadmap is:
 
-- [docs/roadmap/CREATIVE_TEST_AGENT_CANONICAL_ROADMAP.md](docs/roadmap/CREATIVE_TEST_AGENT_CANONICAL_ROADMAP.md)
+- [docs/roadmap/CURRENT.md](docs/roadmap/CURRENT.md)
 
-For a compact stage-by-stage status, execution-mode matrix, MVP readiness assessment and legacy task-ID crosswalk, use:
+Current canonical version:
 
-- [docs/roadmap/CREATIVE_TEST_AGENT_ROADMAP_STATUS.md](docs/roadmap/CREATIVE_TEST_AGENT_ROADMAP_STATUS.md)
+- [Creative Test Agent canonical roadmap v2.2 — 2026-08-04](docs/roadmap/CREATIVE_TEST_AGENT_CANONICAL_ROADMAP_v2.2_2026-08-04.md)
 
-The canonical document remains the single source of truth for task order, statuses, dependencies, execution modes and acceptance criteria. The readable status view is derived from it and must not introduce independent task IDs.
+The previous unversioned roadmap and archived documents are historical records. Current priorities, statuses, execution modes and the Waiting-for-Data Lane are defined only by the version linked above.
