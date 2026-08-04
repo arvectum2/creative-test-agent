@@ -1,0 +1,161 @@
+[
+  {
+    "name": "valid",
+    "case_key": "SYN-VALID-001",
+    "initial_state": "included",
+    "source_linkage_confidence": "exact",
+    "asset_references": [
+      "asset-valid-001"
+    ],
+    "metrics": {
+      "impressions": 1000,
+      "clicks": 50,
+      "rate": 0.05
+    },
+    "dq": {
+      "overall_status": "passed",
+      "warning_issue_count": 0,
+      "blocking_issue_count": 0,
+      "total_issue_count": 0,
+      "confirmed_mapping_count": 2,
+      "suggested_mapping_count": 0,
+      "rejected_mapping_count": 0,
+      "unmapped_mapping_count": 0
+    },
+    "source_files": [
+      {
+        "filename": "synthetic-valid.csv",
+        "size": 128,
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    ]
+  },
+  {
+    "name": "invalid",
+    "case_key": "SYN-INVALID-001",
+    "initial_state": "excluded",
+    "source_linkage_confidence": "exact",
+    "asset_references": [
+      "asset-invalid-001"
+    ],
+    "metrics": {
+      "impressions": 500,
+      "clicks": 10,
+      "rate": 0.02
+    },
+    "dq": {
+      "overall_status": "blocked",
+      "warning_issue_count": 1,
+      "blocking_issue_count": 2,
+      "total_issue_count": 3,
+      "confirmed_mapping_count": 0,
+      "suggested_mapping_count": 1,
+      "rejected_mapping_count": 1,
+      "unmapped_mapping_count": 1
+    },
+    "source_files": [
+      {
+        "filename": "synthetic-invalid.csv",
+        "size": 96,
+        "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    ]
+  },
+  {
+    "name": "rate_only",
+    "case_key": "SYN-RATE-ONLY-001",
+    "initial_state": "deferred",
+    "source_linkage_confidence": "exact",
+    "asset_references": [
+      "asset-rate-only-001"
+    ],
+    "metrics": {
+      "impressions": null,
+      "clicks": null,
+      "rate": 0.034
+    },
+    "dq": {
+      "overall_status": "review_required",
+      "warning_issue_count": 1,
+      "blocking_issue_count": 0,
+      "total_issue_count": 1,
+      "confirmed_mapping_count": 1,
+      "suggested_mapping_count": 0,
+      "rejected_mapping_count": 0,
+      "unmapped_mapping_count": 0
+    },
+    "source_files": [
+      {
+        "filename": "synthetic-rate-only.csv",
+        "size": 80,
+        "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ]
+  },
+  {
+    "name": "missing_linkage",
+    "case_key": "SYN-MISSING-LINK-001",
+    "initial_state": "needs_clarification",
+    "source_linkage_confidence": "missing",
+    "asset_references": [],
+    "metrics": {
+      "impressions": 300,
+      "clicks": 9,
+      "rate": 0.03
+    },
+    "dq": {
+      "overall_status": "review_required",
+      "warning_issue_count": 2,
+      "blocking_issue_count": 0,
+      "total_issue_count": 2,
+      "confirmed_mapping_count": 1,
+      "suggested_mapping_count": 1,
+      "rejected_mapping_count": 0,
+      "unmapped_mapping_count": 0
+    },
+    "source_files": [
+      {
+        "filename": "synthetic-missing-link.csv",
+        "size": 72,
+        "sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    ]
+  },
+  {
+    "name": "multi_asset",
+    "case_key": "SYN-MULTI-ASSET-001",
+    "initial_state": "included",
+    "source_linkage_confidence": "probable",
+    "asset_references": [
+      "asset-multi-001",
+      "asset-multi-002"
+    ],
+    "metrics": {
+      "impressions": 900,
+      "clicks": 36,
+      "rate": 0.04
+    },
+    "dq": {
+      "overall_status": "review_required",
+      "warning_issue_count": 1,
+      "blocking_issue_count": 0,
+      "total_issue_count": 1,
+      "confirmed_mapping_count": 1,
+      "suggested_mapping_count": 0,
+      "rejected_mapping_count": 0,
+      "unmapped_mapping_count": 0
+    },
+    "source_files": [
+      {
+        "filename": "synthetic-multi-assets.csv",
+        "size": 144,
+        "sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      {
+        "filename": "synthetic-multi-assets.json",
+        "size": 64,
+        "sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      }
+    ]
+  }
+]

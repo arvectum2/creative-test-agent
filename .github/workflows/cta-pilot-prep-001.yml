@@ -1,0 +1,67 @@
+name: CTA-PILOT-PREP-001
+
+on:
+  pull_request:
+    paths:
+      - "src/modules/pilot_intake/**"
+      - "src/modules/ui/templates/pilot_intake/**"
+      - "src/modules/ui/templates/projects/detail.html"
+      - "src/app/routers.py"
+      - "src/shared/db/session.py"
+      - "migrations/**"
+      - "tests/test_pilot_intake_register.py"
+      - "tests/fixtures/pilot_intake/**"
+      - ".github/workflows/cta-pilot-prep-001.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cta-pilot-prep-001-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-acceptance:
+    name: Synthetic intake acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CTA_DATABASE_URL: sqlite:///./.ci/cta-pilot-prep-001.db
+      CTA_LOCAL_ONLY_MODE: "true"
+      CTA_HOST: 127.0.0.1
+      CTA_PUBLIC_BASE_URL: http://localhost:8000
+      CTA_TRUSTED_HOSTS: localhost,127.0.0.1,test,testserver
+      CTA_CORS_ALLOWED_ORIGINS: ""
+      CTA_ALLOW_CLOUD_LLM: "false"
+      CTA_LLM_PROVIDER: stub
+      CTA_VISION_PROVIDER: stub
+      CTA_ENABLE_AUTH: "false"
+      CTA_SECURITY_FAIL_CLOSED: "true"
+      CTA_SECURITY_HEADERS_ENABLED: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install project and test dependencies
+        run: |
+          python -m pip install --upgrade pip --quiet
+          python -m pip install -e ".[dev]" --quiet
+      - name: Prepare isolated state
+        run: |
+          rm -rf .ci
+          mkdir -p .ci data/storage data/exports data/backups
+      - name: Compile implementation
+        run: python -m compileall -q src/modules/pilot_intake tests/test_pilot_intake_register.py
+      - name: Verify model registry and migrations
+        run: |
+          python scripts/check_model_registry.py
+          python scripts/run_migrations.py
+          python scripts/check_migrations.py
+      - name: Run targeted synthetic acceptance
+        run: python -m pytest tests/test_pilot_intake_register.py -q -s

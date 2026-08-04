@@ -38,6 +38,8 @@ from src.modules.knowledge_base.router import router as knowledge_base_router
 from src.modules.mapping_engine.router import router as mapping_engine_router
 from src.modules.model_profiles.router import router as model_profiles_router
 from src.modules.normalized_data.router import router as normalized_data_router
+from src.modules.pilot_intake.router import router as pilot_intake_router
+from src.modules.pilot_intake.ui_router import router as pilot_intake_ui_router
 from src.modules.pilot_workspace.router import router as pilot_workspace_router
 from src.modules.prediction_readiness.router import router as prediction_readiness_router
 from src.modules.projects.router import router as projects_router
@@ -76,6 +78,7 @@ ROUTERS: tuple[RouterRegistration, ...] = (
     RouterRegistration(campaign_evidence_ui_router),
     RouterRegistration(finding_reviews_ui_router),
     RouterRegistration(calibration_dashboard_ui_router),
+    RouterRegistration(pilot_intake_ui_router),
     RouterRegistration(pilot_workspace_router),
     RouterRegistration(llm_router),
     RouterRegistration(vision_router, prefix="/vision"),
@@ -94,6 +97,7 @@ ROUTERS: tuple[RouterRegistration, ...] = (
     RouterRegistration(reviews_router),
     RouterRegistration(finding_reviews_router),
     RouterRegistration(calibration_dashboard_router),
+    RouterRegistration(pilot_intake_router),
     RouterRegistration(job_queue_router),
     RouterRegistration(batches_router),
     RouterRegistration(import_sessions_router),

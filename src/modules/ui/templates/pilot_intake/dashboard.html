@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Controlled Pilot Intake — {{ t("Creative Test Agent") }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs">
+  <a href="/ui">{{ t("Dashboard") }}</a> &gt;
+  <a href="/ui/projects/{{ project_id }}">{{ t("Project") }}</a> &gt;
+  Controlled Pilot Intake
+</div>
+<div class="page-header">
+  <h1>Controlled Pilot Intake</h1>
+  <a href="/pilot-intake/projects/{{ project_id }}/export.json" class="btn btn-secondary">Deterministic JSON export</a>
+</div>
+
+{% if saved %}<div class="alert alert-success">Decision saved.</div>{% endif %}
+
+<div class="dashboard-grid">
+  <div class="dashboard-card"><h3>Total cases</h3><div class="count">{{ summary.total_cases }}</div></div>
+  <div class="dashboard-card"><h3>Included</h3><div class="count">{{ summary.state_counts.included }}</div></div>
+  <div class="dashboard-card"><h3>Excluded</h3><div class="count">{{ summary.state_counts.excluded }}</div></div>
+  <div class="dashboard-card"><h3>Deferred</h3><div class="count">{{ summary.state_counts.deferred }}</div></div>
+  <div class="dashboard-card"><h3>Needs clarification</h3><div class="count">{{ summary.state_counts.needs_clarification }}</div></div>
+  <div class="dashboard-card"><h3>Rate-only</h3><div class="count">{{ summary.rate_only_case_count }}</div></div>
+</div>
+
+<div class="card">
+  <h2>Register a provenance-bound case</h2>
+  <p class="text-muted">The import session must already be completed. Existing immutable source SHA-256 values and Data Quality runs are snapshotted; uploaded files are not copied into the register.</p>
+  <form method="post" action="/ui/projects/{{ project_id }}/pilot-intake/cases">
+    <div class="form-grid">
+      <label>Case key<input name="case_key" required maxlength="255"></label>
+      <label>Import session ID<input name="import_session_id" required maxlength="255"></label>
+      <label>Initial state
+        <select name="initial_state">
+          <option value="included">included</option>
+          <option value="excluded">excluded</option>
+          <option value="deferred">deferred</option>
+          <option value="needs_clarification" selected>needs_clarification</option>
+        </select>
+      </label>
+      <label>Source linkage
+        <select name="source_linkage_confidence">
+          <option value="exact">exact</option>
+          <option value="probable">probable</option>
+          <option value="uncertain">uncertain</option>
+          <option value="one_to_many">one_to_many</option>
+          <option value="missing">missing</option>
+          <option value="rejected">rejected</option>
+        </select>
+      </label>
+      <label>Requested linkage (optional)
+        <select name="requested_linkage_confidence">
+          <option value="">keep source linkage</option>
+          <option value="exact">exact</option>
+          <option value="probable">probable</option>
+          <option value="uncertain">uncertain</option>
+          <option value="one_to_many">one_to_many</option>
+          <option value="missing">missing</option>
+          <option value="rejected">rejected</option>
+        </select>
+      </label>
+      <label>Asset references (comma/newline separated)<textarea name="asset_references" rows="2"></textarea></label>
+      <label>Data Quality run IDs (optional)<textarea name="data_quality_run_ids" rows="2"></textarea></label>
+      <label>Reported impressions<input name="impressions" type="number" min="0"></label>
+      <label>Reported clicks<input name="clicks" type="number" min="0"></label>
+      <label>Reported rate<input name="rate" type="number" min="0" max="1" step="0.000001"></label>
+      <label>Decision reason<input name="decision_reason" value="case_registered" required maxlength="4000"></label>
+    </div>
+    <button class="btn btn-primary" type="submit">Register case</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Case register</h2>
+  {% if cases %}
+  <table>
+    <tr>
+      <th>Case</th><th>State</th><th>DQ</th><th>Linkage</th><th>Metrics</th><th>Sources</th><th>Decision</th>
+    </tr>
+    {% for case in cases %}
+    <tr>
+      <td>
+        <strong>{{ case.case_key }}</strong><br>
+        <small>{{ case.id }}</small><br>
+        <small>package {{ case.source_package_sha256[:12] }}…</small>
+      </td>
+      <td><span class="badge">{{ case.state }}</span></td>
+      <td>
+        {{ case.data_quality.overall_status }}<br>
+        <small>{{ case.data_quality.blocking_issue_count }} blocking / {{ case.data_quality.warning_issue_count }} warning</small>
+      </td>
+      <td>
+        source: {{ case.source_linkage_confidence }}<br>
+        effective: {{ case.linkage_confidence }}<br>
+        <small>{{ case.asset_count }} asset(s)</small>
+      </td>
+      <td>
+        impressions: {{ case.metrics.impressions if case.metrics.impressions is not none else 'missing' }}<br>
+        clicks: {{ case.metrics.clicks if case.metrics.clicks is not none else 'missing' }}<br>
+        rate: {{ case.metrics.rate if case.metrics.rate is not none else 'missing' }}
+      </td>
+      <td>
+        {% for source in case.source_files %}
+          {{ source.original_filename }}<br><small>{{ source.sha256[:12] }}…</small><br>
+        {% endfor %}
+      </td>
+      <td>
+        <form method="post" action="/ui/projects/{{ project_id }}/pilot-intake/cases/{{ case.id }}/decisions">
+          <select name="state">
+            <option value="included">included</option>
+            <option value="excluded">excluded</option>
+            <option value="deferred">deferred</option>
+            <option value="needs_clarification">needs_clarification</option>
+          </select>
+          <input name="reason" required placeholder="Reason" maxlength="4000">
+          <button class="btn btn-secondary" type="submit">Append decision</button>
+        </form>
+        <details>
+          <summary>History ({{ histories[case.id]|length }})</summary>
+          <ol>
+          {% for item in histories[case.id] %}
+            <li>#{{ item.sequence }} {{ item.from_state or 'new' }} → {{ item.to_state }} — {{ item.reason }}</li>
+          {% endfor %}
+          </ol>
+        </details>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p>No cases registered.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Evidence boundary</h2>
+  <ul>
+    <li>Probable, uncertain and other non-exact linkage is never promoted to exact.</li>
+    <li>Missing counts stay missing; rounded rates are not used to reconstruct counts.</li>
+    <li>This synthetic/client-independent register does not complete CTA-PILOT-002.</li>
+  </ul>
+</div>
+{% endblock %}
