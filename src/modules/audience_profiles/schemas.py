@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CreateAudienceProfileRequest(BaseModel):
@@ -19,5 +19,5 @@ class AudienceProfileResponse(BaseModel):
     pains: str | None = None
     motivations: str | None = None
     objections: str | None = None
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
     created_at: datetime

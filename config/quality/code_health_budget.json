@@ -1,0 +1,6 @@
+{
+  "max_python_module_lines": 700,
+  "max_function_lines": 300,
+  "tracked_module_line_limits": {},
+  "tracked_function_line_limits": {}
+}

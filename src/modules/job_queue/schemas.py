@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class JobResponse(BaseModel):
@@ -11,8 +11,8 @@ class JobResponse(BaseModel):
     entity_type: str | None = None
     entity_id: str | None = None
     project_id: str | None = None
-    payload: dict = {}
-    result: dict = {}
+    payload: dict = Field(default_factory=dict)
+    result: dict = Field(default_factory=dict)
     error_message: str | None = None
     attempts: int = 0
     max_attempts: int = 3

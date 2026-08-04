@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .models import KnowledgeSourceType
 
@@ -12,9 +12,7 @@ class CreateKnowledgeItemRequest(BaseModel):
     project_id: str | None = None
     title: str
     content: str | None = None
-    tags: list[str] = []
-
-
+    tags: list[str] = Field(default_factory=list)
 class KnowledgeItemResponse(BaseModel):
     id: str
     source_type: str
@@ -23,8 +21,8 @@ class KnowledgeItemResponse(BaseModel):
     project_id: str | None = None
     title: str
     content: str | None = None
-    tags: list[str] = []
-    metadata: dict = {}
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime | None = None
 
@@ -32,4 +30,4 @@ class KnowledgeItemResponse(BaseModel):
 class KnowledgeSearchResult(BaseModel):
     item: KnowledgeItemResponse
     score: float
-    matched_terms: list[str] = []
+    matched_terms: list[str] = Field(default_factory=list)

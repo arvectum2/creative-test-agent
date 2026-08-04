@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .models import BrandbookDocumentType
 
@@ -16,11 +16,11 @@ class BrandbookDocumentResponse(BaseModel):
     extracted_text: str | None = None
     file_path: str | None = None
     analysis: dict | None = None
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime | None = None
 
 
 class BrandbookContextResult(BaseModel):
-    snippets: list[str] = []
+    snippets: list[str] = Field(default_factory=list)
     total_chars: int = 0

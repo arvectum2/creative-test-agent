@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ScorecardItem(BaseModel):
@@ -23,8 +23,8 @@ class ReportAudienceReaction(BaseModel):
     audience_profile_id: str = ""
     segment_name: str = ""
     reaction: str = ""
-    positive_triggers: list[str] = []
-    objections: list[str] = []
+    positive_triggers: list[str] = Field(default_factory=list)
+    objections: list[str] = Field(default_factory=list)
     engagement_probability: float = 0.0
 
 
@@ -44,17 +44,17 @@ class ReportResponse(BaseModel):
     title: str = ""
     summary: str = ""
     main_message: str = ""
-    audience_reactions: list[ReportAudienceReaction] = []
-    scorecard: list[ScorecardItem] = []
-    risks: list[RiskItem] = []
-    recommendations: list[RecommendationItem] = []
+    audience_reactions: list[ReportAudienceReaction] = Field(default_factory=list)
+    scorecard: list[ScorecardItem] = Field(default_factory=list)
+    risks: list[RiskItem] = Field(default_factory=list)
+    recommendations: list[RecommendationItem] = Field(default_factory=list)
     final_recommendation: str = ""
     report_markdown: str = ""
     report_html: str | None = None
     visual_notes: str = ""
     file_path: str | None = None
     created_at: datetime | None = None
-    metadata: ReportMetadata = ReportMetadata()
+    metadata: ReportMetadata = Field(default_factory=ReportMetadata)
 
 
 class ReportVersionInfo(BaseModel):

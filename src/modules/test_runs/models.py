@@ -8,6 +8,7 @@ from src.shared.db.base import Base
 
 
 class TestRun(Base):
+    __test__ = False
     __tablename__ = "test_run"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EvaluationCaseResultResponse(BaseModel):
@@ -11,9 +11,9 @@ class EvaluationCaseResultResponse(BaseModel):
     score: int
     passed: int
     total_checks: int
-    failures: list[str] = []
-    warnings: list[str] = []
-    output_summary: dict = {}
+    failures: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    output_summary: dict = Field(default_factory=dict)
     created_at: datetime
 
 
@@ -23,13 +23,11 @@ class EvaluationRunResponse(BaseModel):
     provider: str
     model: str
     status: str
-    summary: dict = {}
-    metadata: dict = {}
+    summary: dict = Field(default_factory=dict)
+    metadata: dict = Field(default_factory=dict)
     started_at: datetime | None = None
     completed_at: datetime | None = None
-    results: list[EvaluationCaseResultResponse] = []
-
-
+    results: list[EvaluationCaseResultResponse] = Field(default_factory=list)
 class RunEvaluationRequest(BaseModel):
     profile_id: str | None = None
     case_ids: list[str] | None = None

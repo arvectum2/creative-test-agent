@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CriterionSchema(BaseModel):
@@ -22,5 +22,5 @@ class TestRubricResponse(BaseModel):
     criteria: list[CriterionSchema]
     scale_min: int
     scale_max: int
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
     created_at: datetime

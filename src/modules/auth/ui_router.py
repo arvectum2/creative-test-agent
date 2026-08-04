@@ -16,18 +16,6 @@ from src.shared.security.login import (
 
 router = APIRouter()
 
-_LEGACY_UI_AUTH_PATHS = {"/ui/login", "/ui/logout"}
-
-
-def remove_legacy_ui_auth_routes(legacy_router: APIRouter) -> None:
-    """Remove the pre-hardening UI auth handlers before the secure router is mounted."""
-
-    legacy_router.routes[:] = [
-        route
-        for route in legacy_router.routes
-        if getattr(route, "path", None) not in _LEGACY_UI_AUTH_PATHS
-    ]
-
 
 def _render_login(
     request: Request,

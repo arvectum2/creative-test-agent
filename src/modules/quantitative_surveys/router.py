@@ -25,22 +25,14 @@ from src.modules.quantitative_surveys.service import (
     submit_response,
 )
 from src.shared.errors import AppError
-from src.shared.security.auth import get_current_user_from_request
+from src.shared.security.auth import get_optional_user_id
 
 router = APIRouter(tags=["quantitative-surveys"])
 
 
-def _user_id(request: Request) -> str | None:
-    try:
-        user = get_current_user_from_request(request)
-    except Exception:
-        return None
-    return user.get("user_id") or user.get("id")
-
-
 @router.post("/quantitative-questionnaires", response_model=QuestionnaireResponse)
 def post_questionnaire(body: CreateQuestionnaireRequest, request: Request):
-    result = create_questionnaire(body, created_by_user_id=_user_id(request))
+    result = create_questionnaire(body, created_by_user_id=get_optional_user_id(request))
     write_audit_event(
         "quantitative_questionnaire_created",
         "quantitative_questionnaire",
@@ -77,7 +69,7 @@ def list_questionnaires_route(project_id: str = Query(...)):
 
 @router.post("/quantitative-studies", response_model=StudyResponse)
 def post_study(body: CreateStudyRequest, request: Request):
-    result = create_study(body, created_by_user_id=_user_id(request))
+    result = create_study(body, created_by_user_id=get_optional_user_id(request))
     write_audit_event(
         "quantitative_study_created",
         "quantitative_study",

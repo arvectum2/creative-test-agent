@@ -1,13 +1,17 @@
 PYTHON = .venv/bin/python
 UVICORN = .venv/bin/uvicorn
 
-.PHONY: test ci-check run seed-demo reset-demo export-pilot check-closed-loop check-demo pilot-check load-demo-profile build-client-pack client-pilot-check check-server docker-build docker-up docker-down docker-logs bootstrap-admin server-build server-up server-down server-logs server-shell server-check server-bootstrap-admin server-backup server-restore migrations-check migrations-upgrade register-prompts eval-stub eval-local check-local-model release-manifest release-check release-bundle verify-release-install pilot-smoke operator-recovery-rehearsal pilot-calibration-package
+.PHONY: test code-health ci-check run seed-demo reset-demo export-pilot check-closed-loop check-demo pilot-check load-demo-profile build-client-pack client-pilot-check check-server docker-build docker-up docker-down docker-logs bootstrap-admin server-build server-up server-down server-logs server-shell server-check server-bootstrap-admin server-backup server-restore migrations-check migrations-upgrade register-prompts eval-stub eval-local check-local-model release-manifest release-check release-bundle verify-release-install pilot-smoke operator-recovery-rehearsal pilot-calibration-package
 
 test:
 	$(PYTHON) -m pytest tests/ -v
 
+code-health:
+	$(PYTHON) scripts/check_code_health.py
+
 ci-check:
 	$(PYTHON) -m compileall -q src scripts
+	$(PYTHON) scripts/check_code_health.py
 	$(PYTHON) scripts/check_model_registry.py
 	$(PYTHON) scripts/run_migrations.py
 	$(PYTHON) scripts/check_migrations.py

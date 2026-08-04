@@ -15,18 +15,10 @@ from src.modules.data_review_reports.service import (
     get_latest_data_review_report,
 )
 from src.shared.errors import AppError
-from src.shared.security.auth import get_current_user_from_request
+from src.shared.security.auth import get_optional_user_id
 from src.shared.security.hardening import safe_download_name
 
 router = APIRouter(tags=["data-review-reports"])
-
-
-def _user_id(request: Request) -> str | None:
-    try:
-        user = get_current_user_from_request(request)
-    except Exception:
-        return None
-    return user.get("user_id") or user.get("id")
 
 
 @router.post(
@@ -43,7 +35,7 @@ def post_data_review_report(
         prediction_readiness_run_id=body.prediction_readiness_run_id,
         quantitative_study_id=body.quantitative_study_id,
         force=body.force,
-        created_by_user_id=_user_id(request),
+        created_by_user_id=get_optional_user_id(request),
     )
     write_audit_event(
         "data_review_report_generated",

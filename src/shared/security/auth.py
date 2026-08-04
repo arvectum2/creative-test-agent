@@ -1,10 +1,20 @@
-from fastapi import Cookie, HTTPException, Request
+from typing import TypedDict
+
+from fastapi import HTTPException, Request
 
 from src.shared.config.settings import get_settings
 
 from .session import decode_session_token
 
-AUTH_DISABLED_USER = {
+
+class CurrentUser(TypedDict):
+    user_id: str
+    role: str
+    display_name: str
+    is_active: bool
+
+
+AUTH_DISABLED_USER: CurrentUser = {
     "user_id": "system",
     "role": "admin",
     "display_name": "System",
@@ -12,7 +22,7 @@ AUTH_DISABLED_USER = {
 }
 
 
-def get_current_user_from_request(request: Request) -> dict:
+def get_current_user_from_request(request: Request) -> CurrentUser:
     settings = get_settings()
     if not settings.enable_auth:
         return dict(AUTH_DISABLED_USER)
@@ -34,9 +44,28 @@ def get_current_user_from_request(request: Request) -> dict:
         if user is None or not user.is_active:
             raise HTTPException(status_code=401, detail="User not found or inactive")
 
-        return {
-            "user_id": user.id,
-            "role": user.role,
-            "display_name": user.display_name,
-            "is_active": user.is_active,
-        }
+        return CurrentUser(
+            user_id=user.id,
+            role=user.role,
+            display_name=user.display_name,
+            is_active=user.is_active,
+        )
+
+
+def get_optional_user_from_request(request: Request) -> CurrentUser | None:
+    """Return the current user, treating authentication failures as anonymous.
+
+    Only expected authentication failures are swallowed. Database and programming
+    errors still propagate so operational faults cannot be mislabeled as anonymous
+    requests.
+    """
+
+    try:
+        return get_current_user_from_request(request)
+    except HTTPException:
+        return None
+
+
+def get_optional_user_id(request: Request) -> str | None:
+    user = get_optional_user_from_request(request)
+    return user["user_id"] if user else None

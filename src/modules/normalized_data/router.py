@@ -26,17 +26,9 @@ from src.modules.normalized_data.service import (
     normalize_source_table,
 )
 from src.shared.errors import AppError
-from src.shared.security.auth import get_current_user_from_request
+from src.shared.security.auth import get_optional_user_id
 
 router = APIRouter(tags=["normalized-data"])
-
-
-def _user_id(request: Request) -> str | None:
-    try:
-        user = get_current_user_from_request(request)
-    except Exception:
-        return None
-    return user.get("user_id") or user.get("id")
 
 
 @router.post(
@@ -55,7 +47,7 @@ def post_normalize_source_table(
         file_id,
         table_id,
         force=body.force,
-        created_by_user_id=_user_id(request),
+        created_by_user_id=get_optional_user_id(request),
     )
     write_audit_event(
         "source_table_normalized",

@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Query
 from src.modules.audit_log.service import write_audit_event
 
 from .schemas import CreateProjectRequest, ProjectResponse
+from .history import get_project_history
 from .service import create_project, get_project, list_projects
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -26,3 +27,10 @@ def get_project_by_id(project_id: str):
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+
+@router.get("/{project_id}/history")
+def project_history(project_id: str):
+    """Return the project timeline from the project resource hierarchy."""
+
+    return get_project_history(project_id)

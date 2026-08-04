@@ -11,17 +11,9 @@ from src.modules.prediction_readiness.service import (
     get_prediction_readiness_run,
 )
 from src.shared.errors import AppError
-from src.shared.security.auth import get_current_user_from_request
+from src.shared.security.auth import get_optional_user_id
 
 router = APIRouter(tags=["prediction-readiness"])
-
-
-def _user_id(request: Request) -> str | None:
-    try:
-        user = get_current_user_from_request(request)
-    except Exception:
-        return None
-    return user.get("user_id") or user.get("id")
 
 
 @router.post(
@@ -36,7 +28,7 @@ def post_prediction_readiness(
     result = evaluate_prediction_readiness(
         data_quality_run_id,
         force=body.force,
-        created_by_user_id=_user_id(request),
+        created_by_user_id=get_optional_user_id(request),
     )
     write_audit_event(
         "prediction_readiness_evaluated",

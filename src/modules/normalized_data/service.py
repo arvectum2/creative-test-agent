@@ -40,6 +40,23 @@ from src.modules.normalized_data.schemas import (
 )
 from src.shared.db.repository import db_session, json_dumps, json_loads
 from src.shared.errors import AppError
+from src.modules.normalized_data.normalizers import (
+    issue as _issue,
+    normalize_field as _normalize_field,
+)
+from src.modules.normalized_data.row_normalizer import normalize_rows
+from src.modules.normalized_data.responses import (
+    normalization_result as _normalization_result,
+    require_run as _require_run,
+    row_response as _row_response,
+    run_response as _run_response,
+    campaign_response as _campaign_response,
+    creative_response as _creative_response,
+    platform_response as _platform_response,
+    audience_response as _audience_response,
+    placement_response as _placement_response,
+    performance_response as _performance_response,
+)
 
 NORMALIZER_NAME = "deterministic-domain-normalizer"
 NORMALIZER_VERSION = "1.0.0"
@@ -145,231 +162,22 @@ def normalize_source_table(
             .order_by(SourceRow.source_row_number.asc(), SourceRow.id.asc())
             .all()
         )
-        mapping_by_target: dict[str, list[tuple[ColumnMapping, SourceColumn]]] = defaultdict(list)
-        mapped_column_ids: set[str] = set()
-        for mapping, column in mappings:
-            mapping_by_target[mapping.target_field].append((mapping, column))
-            mapped_column_ids.add(column.id)
-
-        warnings: list[dict] = []
-        duplicate_targets = sorted(
-            target for target, items in mapping_by_target.items() if len(items) > 1
+        row_state = normalize_rows(
+            db=db,
+            run=run,
+            inspection=inspection,
+            table=table,
+            mappings=mappings,
+            columns=columns,
+            data_rows=data_rows,
+            source_file_id=source_file_id,
         )
-        if duplicate_targets:
-            warnings.append(
-                _issue(
-                    "duplicate_confirmed_targets",
-                    "Several confirmed columns map to the same target; the first non-empty value is used per row.",
-                    severity="warning",
-                    target_fields=duplicate_targets,
-                )
-            )
-        if not data_rows:
-            warnings.append(
-                _issue(
-                    "no_data_rows",
-                    "The inspected table contains no materialized data rows.",
-                    severity="warning",
-                )
-            )
-
-        campaign_cache: dict[str, Campaign] = {}
-        creative_cache: dict[str, CreativeRecord] = {}
-        platform_cache: dict[str, Platform] = {}
-        audience_cache: dict[str, AudienceSegment] = {}
-        project_assets = (
-            db.query(CreativeAsset)
-            .filter(CreativeAsset.project_id == inspection.project_id)
-            .all()
-        )
-
-        status_counts: Counter[str] = Counter()
-        for source_row in data_rows:
-            values = json_loads(source_row.values_json)
-            if not isinstance(values, list):
-                values = []
-            padded = values + [None] * max(0, len(columns) - len(values))
-            source_payload = {
-                column.normalized_header: padded[column.position - 1]
-                if column.position - 1 < len(padded)
-                else None
-                for column in columns
-            }
-            custom_fields = {
-                column.normalized_header: source_payload.get(column.normalized_header)
-                for column in columns
-                if column.id not in mapped_column_ids
-            }
-
-            row_issues: list[dict] = []
-            selected: dict[str, tuple[ColumnMapping, SourceColumn, Any]] = {}
-            for target, target_mappings in mapping_by_target.items():
-                non_empty: list[tuple[ColumnMapping, SourceColumn, Any]] = []
-                for mapping, column in sorted(target_mappings, key=lambda item: item[1].position):
-                    raw = padded[column.position - 1] if column.position - 1 < len(padded) else None
-                    if not _is_empty(raw):
-                        non_empty.append((mapping, column, raw))
-                if non_empty:
-                    selected[target] = non_empty[0]
-                if len(non_empty) > 1:
-                    row_issues.append(
-                        _issue(
-                            "multiple_values_for_target",
-                            "Multiple confirmed columns contain values for one target; the leftmost value was used.",
-                            severity="warning",
-                            target_field=target,
-                            source_column_ids=[item[1].id for item in non_empty],
-                        )
-                    )
-
-            normalized: dict[str, Any] = {}
-            transformations: dict[str, str] = {}
-            for target, (_mapping, column, raw) in selected.items():
-                value, transformation, issue = _normalize_field(target, raw)
-                normalized[target] = value
-                transformations[target] = transformation
-                if issue is not None:
-                    issue["context"].update(
-                        {
-                            "target_field": target,
-                            "source_column_id": column.id,
-                            "source_header": column.source_header,
-                        }
-                    )
-                    row_issues.append(issue)
-
-            normalized_row = NormalizedSourceRow(
-                normalization_run_id=run.id,
-                project_id=inspection.project_id,
-                source_file_id=source_file_id,
-                source_table_id=table.id,
-                source_row_id=source_row.id,
-                source_row_number=source_row.source_row_number,
-                status=NormalizedRowStatus.normalized,
-                issue_count=0,
-                issues_json=json_dumps([]),
-                source_payload_json=json_dumps(source_payload),
-                custom_fields_json=json_dumps(custom_fields),
-            )
-            db.add(normalized_row)
-            db.flush()
-
-            campaign = _campaign_for_row(
-                db,
-                run,
-                source_row,
-                normalized,
-                campaign_cache,
-            )
-            creative, creative_issue = _creative_for_row(
-                db,
-                run,
-                normalized,
-                creative_cache,
-                project_assets,
-            )
-            if creative_issue is not None:
-                row_issues.append(creative_issue)
-            platform = _named_dimension_for_row(
-                db,
-                model=Platform,
-                run=run,
-                raw_name=normalized.get("platform"),
-                cache=platform_cache,
-            )
-            audience = _named_dimension_for_row(
-                db,
-                model=AudienceSegment,
-                run=run,
-                raw_name=normalized.get("audience"),
-                cache=audience_cache,
-            )
-
-            placement = None
-            if any(field in selected for field in _PLACEMENT_FIELDS):
-                placement = Placement(
-                    normalization_run_id=run.id,
-                    project_id=run.project_id,
-                    source_row_id=source_row.id,
-                    campaign_id=campaign.id if campaign else None,
-                    creative_record_id=creative.id if creative else None,
-                    platform_id=platform.id if platform else None,
-                    audience_segment_id=audience.id if audience else None,
-                    placement_type=normalized.get("placement_type"),
-                    format=normalized.get("format"),
-                    metadata_json=json_dumps({}),
-                )
-                db.add(placement)
-                db.flush()
-
-            performance = None
-            if any(field in selected for field in _PERFORMANCE_FIELDS):
-                performance = PerformanceObservation(
-                    normalization_run_id=run.id,
-                    project_id=run.project_id,
-                    source_row_id=source_row.id,
-                    placement_id=placement.id if placement else None,
-                    observation_date=normalized.get("date"),
-                    impressions=normalized.get("impressions"),
-                    clicks=normalized.get("clicks"),
-                    ctr=normalized.get("ctr"),
-                    metadata_json=json_dumps({}),
-                )
-                db.add(performance)
-                db.flush()
-
-            normalized_row.campaign_id = campaign.id if campaign else None
-            normalized_row.creative_record_id = creative.id if creative else None
-            normalized_row.platform_id = platform.id if platform else None
-            normalized_row.audience_segment_id = audience.id if audience else None
-            normalized_row.placement_id = placement.id if placement else None
-            normalized_row.performance_observation_id = performance.id if performance else None
-
-            if not selected:
-                row_status = NormalizedRowStatus.skipped
-            elif any(item.get("severity") in {"warning", "error"} for item in row_issues):
-                row_status = NormalizedRowStatus.partial
-            else:
-                row_status = NormalizedRowStatus.normalized
-            normalized_row.status = row_status
-            normalized_row.issue_count = len(row_issues)
-            normalized_row.issues_json = json_dumps(row_issues)
-            status_counts[row_status] += 1
-
-            entity_by_field = _entity_targets(
-                normalized_row=normalized_row,
-                campaign=campaign,
-                creative=creative,
-                platform=platform,
-                audience=audience,
-                placement=placement,
-                performance=performance,
-            )
-            for target, (mapping, column, raw) in selected.items():
-                entity_type, entity_id = entity_by_field[target]
-                db.add(
-                    NormalizedFieldValue(
-                        normalization_run_id=run.id,
-                        project_id=run.project_id,
-                        normalized_source_row_id=normalized_row.id,
-                        entity_type=entity_type,
-                        entity_id=entity_id,
-                        field_name=target,
-                        source_file_id=source_file_id,
-                        source_table_id=table.id,
-                        source_row_id=source_row.id,
-                        source_row_number=source_row.source_row_number,
-                        source_column_id=column.id,
-                        source_column_name=column.source_header or column.normalized_header,
-                        column_mapping_id=mapping.id,
-                        mapping_profile_id=mapping.mapping_profile_id,
-                        normalization_version=NORMALIZER_VERSION,
-                        raw_value_json=json_dumps(raw),
-                        normalized_value_json=json_dumps(normalized.get(target)),
-                        transformation=transformations[target],
-                    )
-                )
-
+        status_counts = row_state["status_counts"]
+        campaign_cache = row_state["campaign_cache"]
+        creative_cache = row_state["creative_cache"]
+        platform_cache = row_state["platform_cache"]
+        audience_cache = row_state["audience_cache"]
+        warnings = row_state["warnings"]
         run.source_row_count = len(data_rows)
         run.normalized_row_count = status_counts[NormalizedRowStatus.normalized]
         run.partial_row_count = status_counts[NormalizedRowStatus.partial]
@@ -679,96 +487,6 @@ def _named_dimension_for_row(db, *, model, run, raw_name, cache):
     return existing
 
 
-def _normalize_field(target: str, raw: Any):
-    if target in _TEXT_FIELDS:
-        value = str(raw).strip()
-        if len(value) > 512:
-            return (
-                value[:512],
-                "trim_and_truncate_text",
-                _issue(
-                    "normalized_text_truncated",
-                    "The normalized text exceeded 512 characters and was truncated; the raw value is preserved in provenance.",
-                    severity="warning",
-                    original_length=len(value),
-                ),
-            )
-        return value, "trim_text", None
-    if target in {"impressions", "clicks"}:
-        return _normalize_integer(raw)
-    if target == "ctr":
-        return _normalize_ctr(raw)
-    if target == "date":
-        return _normalize_date(raw)
-    return raw, "identity", None
-
-
-def _normalize_integer(raw: Any):
-    if isinstance(raw, bool):
-        return None, "parse_failed", _parse_issue("integer", raw)
-    if isinstance(raw, int):
-        return raw, "integer", None
-    if isinstance(raw, float) and raw.is_integer():
-        return int(raw), "integral_number_to_integer", None
-    text = str(raw).strip().replace("\u00a0", "").replace(" ", "")
-    if re.fullmatch(r"[-+]?\d+", text):
-        return int(text), "text_to_integer", None
-    match = re.fullmatch(r"([-+]?\d+)[.,](0+)", text)
-    if match:
-        return int(match.group(1)), "integral_decimal_text_to_integer", None
-    return None, "parse_failed", _parse_issue("integer", raw)
-
-
-def _normalize_ctr(raw: Any):
-    if isinstance(raw, bool):
-        return None, "parse_failed", _parse_issue("CTR number", raw)
-    if isinstance(raw, (int, float)):
-        return float(raw), "number", None
-    text = str(raw).strip().replace("\u00a0", "").replace(" ", "")
-    percent = text.endswith("%")
-    if percent:
-        text = text[:-1]
-    text = text.replace(",", ".")
-    try:
-        number = float(text)
-    except ValueError:
-        return None, "parse_failed", _parse_issue("CTR number", raw)
-    if percent:
-        return number / 100.0, "percent_text_to_ratio", None
-    return number, "text_to_number", None
-
-
-def _normalize_date(raw: Any):
-    if isinstance(raw, datetime):
-        return raw.date(), "datetime_to_date", None
-    if isinstance(raw, date):
-        return raw, "date", None
-    text = str(raw).strip()
-    for fmt in (
-        "%Y-%m-%d",
-        "%d.%m.%Y",
-        "%d/%m/%Y",
-        "%Y-%m-%dT%H:%M:%S",
-        "%Y-%m-%d %H:%M:%S",
-        "%d.%m.%Y %H:%M",
-    ):
-        try:
-            return datetime.strptime(text, fmt).date(), "text_to_date", None
-        except ValueError:
-            continue
-    return None, "parse_failed", _parse_issue("date", raw)
-
-
-def _parse_issue(expected: str, raw: Any):
-    return _issue(
-        "value_parse_failed",
-        f"The source value could not be normalized as {expected}; the raw value is preserved.",
-        severity="warning",
-        raw_value=raw,
-        expected=expected,
-    )
-
-
 def _entity_targets(*, normalized_row, campaign, creative, platform, audience, placement, performance):
     fallback = ("normalized_source_row", normalized_row.id)
     return {
@@ -787,209 +505,6 @@ def _entity_targets(*, normalized_row, campaign, creative, platform, audience, p
     }
 
 
-def _normalization_result(db, run, *, row_limit: int):
-    rows = (
-        db.query(NormalizedSourceRow)
-        .filter(NormalizedSourceRow.normalization_run_id == run.id)
-        .order_by(NormalizedSourceRow.source_row_number.asc(), NormalizedSourceRow.id.asc())
-        .limit(row_limit)
-        .all()
-    )
-    return NormalizationResultResponse(
-        run=_run_response(run),
-        rows=[_row_response(db, row) for row in rows],
-    )
-
-
-def _run_response(model):
-    snapshot = json_loads(model.mapping_snapshot_json)
-    warnings = json_loads(model.warnings_json)
-    return NormalizationRunResponse(
-        id=model.id,
-        source_table_id=model.source_table_id,
-        source_file_id=model.source_file_id,
-        import_session_id=model.import_session_id,
-        project_id=model.project_id,
-        run_number=model.run_number,
-        normalizer_name=model.normalizer_name,
-        normalizer_version=model.normalizer_version,
-        mapping_fingerprint=model.mapping_fingerprint,
-        mapping_snapshot=snapshot if isinstance(snapshot, list) else [],
-        status=model.status,
-        source_row_count=model.source_row_count,
-        normalized_row_count=model.normalized_row_count,
-        partial_row_count=model.partial_row_count,
-        skipped_row_count=model.skipped_row_count,
-        failed_row_count=model.failed_row_count,
-        campaign_count=model.campaign_count,
-        creative_count=model.creative_count,
-        platform_count=model.platform_count,
-        audience_segment_count=model.audience_segment_count,
-        placement_count=model.placement_count,
-        performance_observation_count=model.performance_observation_count,
-        warning_count=model.warning_count,
-        warnings=warnings if isinstance(warnings, list) else [],
-        error_code=model.error_code,
-        error_message=model.error_message,
-        created_by_user_id=model.created_by_user_id,
-        created_at=model.created_at,
-    )
-
-
-def _row_response(db, model):
-    issues = json_loads(model.issues_json)
-    payload = json_loads(model.source_payload_json)
-    custom = json_loads(model.custom_fields_json)
-    field_values = (
-        db.query(NormalizedFieldValue)
-        .filter(NormalizedFieldValue.normalized_source_row_id == model.id)
-        .order_by(NormalizedFieldValue.field_name.asc())
-        .all()
-    )
-    return NormalizedSourceRowResponse(
-        id=model.id,
-        normalization_run_id=model.normalization_run_id,
-        project_id=model.project_id,
-        source_file_id=model.source_file_id,
-        source_table_id=model.source_table_id,
-        source_row_id=model.source_row_id,
-        source_row_number=model.source_row_number,
-        status=model.status,
-        issue_count=model.issue_count,
-        issues=issues if isinstance(issues, list) else [],
-        source_payload=payload if isinstance(payload, dict) else {},
-        custom_fields=custom if isinstance(custom, dict) else {},
-        campaign_id=model.campaign_id,
-        creative_record_id=model.creative_record_id,
-        platform_id=model.platform_id,
-        audience_segment_id=model.audience_segment_id,
-        placement_id=model.placement_id,
-        performance_observation_id=model.performance_observation_id,
-        field_values=[_field_value_response(item) for item in field_values],
-        created_at=model.created_at,
-    )
-
-
-def _field_value_response(model):
-    return NormalizedFieldValueResponse(
-        id=model.id,
-        normalization_run_id=model.normalization_run_id,
-        normalized_source_row_id=model.normalized_source_row_id,
-        entity_type=model.entity_type,
-        entity_id=model.entity_id,
-        field_name=model.field_name,
-        source_file_id=model.source_file_id,
-        source_table_id=model.source_table_id,
-        source_row_id=model.source_row_id,
-        source_row_number=model.source_row_number,
-        source_column_id=model.source_column_id,
-        source_column_name=model.source_column_name,
-        column_mapping_id=model.column_mapping_id,
-        mapping_profile_id=model.mapping_profile_id,
-        normalization_version=model.normalization_version,
-        raw_value=json_loads(model.raw_value_json),
-        normalized_value=json_loads(model.normalized_value_json),
-        transformation=model.transformation,
-        created_at=model.created_at,
-    )
-
-
-def _campaign_response(model):
-    metadata = json_loads(model.metadata_json)
-    return CampaignResponse(
-        id=model.id,
-        normalization_run_id=model.normalization_run_id,
-        project_id=model.project_id,
-        reference_key=model.reference_key,
-        brand=model.brand,
-        product=model.product,
-        metadata=metadata if isinstance(metadata, dict) else {},
-        created_at=model.created_at,
-    )
-
-
-def _creative_response(model):
-    metadata = json_loads(model.metadata_json)
-    return CreativeRecordResponse(
-        id=model.id,
-        normalization_run_id=model.normalization_run_id,
-        project_id=model.project_id,
-        reference_key=model.reference_key,
-        display_reference=model.display_reference,
-        creative_asset_id=model.creative_asset_id,
-        metadata=metadata if isinstance(metadata, dict) else {},
-        created_at=model.created_at,
-    )
-
-
-def _platform_response(model):
-    metadata = json_loads(model.metadata_json)
-    return PlatformResponse(
-        id=model.id,
-        normalization_run_id=model.normalization_run_id,
-        project_id=model.project_id,
-        canonical_key=model.canonical_key,
-        name=model.name,
-        metadata=metadata if isinstance(metadata, dict) else {},
-        created_at=model.created_at,
-    )
-
-
-def _audience_response(model):
-    metadata = json_loads(model.metadata_json)
-    return AudienceSegmentResponse(
-        id=model.id,
-        normalization_run_id=model.normalization_run_id,
-        project_id=model.project_id,
-        canonical_key=model.canonical_key,
-        name=model.name,
-        metadata=metadata if isinstance(metadata, dict) else {},
-        created_at=model.created_at,
-    )
-
-
-def _placement_response(model):
-    metadata = json_loads(model.metadata_json)
-    return PlacementResponse(
-        id=model.id,
-        normalization_run_id=model.normalization_run_id,
-        project_id=model.project_id,
-        source_row_id=model.source_row_id,
-        campaign_id=model.campaign_id,
-        creative_record_id=model.creative_record_id,
-        platform_id=model.platform_id,
-        audience_segment_id=model.audience_segment_id,
-        placement_type=model.placement_type,
-        format=model.format,
-        metadata=metadata if isinstance(metadata, dict) else {},
-        created_at=model.created_at,
-    )
-
-
-def _performance_response(model):
-    metadata = json_loads(model.metadata_json)
-    return PerformanceObservationResponse(
-        id=model.id,
-        normalization_run_id=model.normalization_run_id,
-        project_id=model.project_id,
-        source_row_id=model.source_row_id,
-        placement_id=model.placement_id,
-        observation_date=model.observation_date,
-        impressions=model.impressions,
-        clicks=model.clicks,
-        ctr=model.ctr,
-        metadata=metadata if isinstance(metadata, dict) else {},
-        created_at=model.created_at,
-    )
-
-
-def _require_run(db, run_id: str):
-    run = db.query(NormalizationRun).filter(NormalizationRun.id == run_id).first()
-    if run is None:
-        raise AppError("normalization_run_not_found", "Normalization run not found", 404)
-    return run
-
-
 def _canonical_key(value: Any) -> str:
     if value is None:
         return ""
@@ -998,7 +513,3 @@ def _canonical_key(value: Any) -> str:
 
 def _is_empty(value: Any) -> bool:
     return value is None or (isinstance(value, str) and not value.strip())
-
-
-def _issue(code: str, message: str, *, severity: str, **context: Any) -> dict:
-    return {"code": code, "message": message, "severity": severity, "context": context}

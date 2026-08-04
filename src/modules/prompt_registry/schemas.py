@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PromptVersionResponse(BaseModel):
@@ -10,5 +10,5 @@ class PromptVersionResponse(BaseModel):
     template_path: str
     template_hash: str
     is_active: bool
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
     created_at: datetime

@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PromptTraceResponse(BaseModel):
@@ -15,11 +15,11 @@ class PromptTraceResponse(BaseModel):
     raw_response_preview: str | None = None
     parsed_success: bool
     repaired: bool
-    repair_steps: list[str] = []
-    validation_warnings: list[str] = []
-    validation_errors: list[str] = []
+    repair_steps: list[str] = Field(default_factory=list)
+    validation_warnings: list[str] = Field(default_factory=list)
+    validation_errors: list[str] = Field(default_factory=list)
     latency_ms: float | None = None
     token_estimate_input: int | None = None
     token_estimate_output: int | None = None
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
     created_at: datetime

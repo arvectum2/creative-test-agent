@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CreateModelProfileRequest(BaseModel):
@@ -12,9 +12,7 @@ class CreateModelProfileRequest(BaseModel):
     default_for_demo: bool = False
     timeout_seconds: int = 60
     notes: str | None = None
-    metadata: dict = {}
-
-
+    metadata: dict = Field(default_factory=dict)
 class ModelProfileResponse(BaseModel):
     id: str
     profile_name: str
@@ -25,7 +23,7 @@ class ModelProfileResponse(BaseModel):
     default_for_demo: bool
     timeout_seconds: int
     notes: str | None = None
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
     created_at: datetime
 
 
@@ -35,4 +33,4 @@ class ModelProfileHealth(BaseModel):
     provider: str
     reachable: bool
     detail: str = ""
-    warnings: list[str] = []
+    warnings: list[str] = Field(default_factory=list)

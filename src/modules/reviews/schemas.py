@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 VALID_STATUSES = {"draft", "in_review", "changes_requested", "approved", "rejected", "archived"}
@@ -17,8 +17,8 @@ class CreateReviewRequest(BaseModel):
     strengths: str | None = None
     concerns: str | None = None
     revision_requests: str | None = None
-    feedback_details: dict = {}
-    requested_changes: list = []
+    feedback_details: dict = Field(default_factory=dict)
+    requested_changes: list = Field(default_factory=list)
     rating: int | None = None
     decision: str | None = None
 
@@ -49,7 +49,7 @@ class ReviewResponse(BaseModel):
     strengths: str | None = None
     concerns: str | None = None
     revision_requests: str | None = None
-    feedback_details: dict = {}
-    requested_changes: list = []
+    feedback_details: dict = Field(default_factory=dict)
+    requested_changes: list = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime | None = None

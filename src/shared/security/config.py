@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from src.shared.config.settings import get_settings
+from src.shared.config.settings import Settings, get_settings
 
 _TRUE_VALUES = {"1", "true", "yes", "on"}
 _FALSE_VALUES = {"0", "false", "no", "off"}
@@ -16,8 +16,8 @@ def security_headers_enabled() -> bool:
     return _env_bool("CTA_SECURITY_HEADERS_ENABLED", True)
 
 
-def security_max_request_bytes() -> int:
-    settings = get_settings()
+def security_max_request_bytes(settings: Settings | None = None) -> int:
+    settings = settings or get_settings()
     default_mb = max(settings.import_max_upload_size_mb + 10, 260)
     value = _env_int("CTA_SECURITY_MAX_REQUEST_SIZE_MB", default_mb, minimum=1, maximum=2048)
     return value * 1024 * 1024

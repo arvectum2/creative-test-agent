@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .models import UserRole
 
@@ -25,7 +25,7 @@ class UserResponse(BaseModel):
     display_name: str
     role: str
     is_active: bool
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime | None = None
 

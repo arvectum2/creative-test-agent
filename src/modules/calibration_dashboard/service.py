@@ -1,20 +1,13 @@
 from __future__ import annotations
 
-import hashlib
-import io
-import json
-import re
 import statistics
-import zipfile
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from typing import Any
 
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font
-from openpyxl.utils import get_column_letter
 
 from src.modules.audit_log.service import write_audit_event
+from src.modules.calibration_dashboard.metric_builder import build_metrics
 from src.modules.calibration_dashboard.models import (
     CalibrationCaseEvidence,
     CalibrationWorkflowMeasurement,
@@ -423,175 +416,26 @@ def compose_dashboard(
     outcome_coverage = _ratio(len(outcome_cases), len(selected_cases))
     review_coverage = _ratio(resolved_count, len(selected_disagreements))
 
-    metrics = [
-        _metric(
-            key="expert_supported_finding_rate",
-            label="Expert-supported finding rate",
-            domain="expert_review",
-            unit="ratio",
-            value=_ratio(yes_correct, correctness_assessed),
-            numerator=yes_correct,
-            denominator=correctness_assessed,
-            coverage=review_coverage,
-            definition=(
-                "Resolved system findings with correctness >=4 divided by resolved "
-                "findings with correctness >=4 or <=2; neutral score 3 is excluded."
-            ),
-            interpretation=(
-                "Observed expert support in this calibration set; not validated model accuracy."
-            ),
-            limitations=[
-                "Single-review, unresolved disagreement and stale adjudication are "
-                "excluded from the rate and shown as coverage gaps."
-            ],
-        ),
-        _metric(
-            key="finding_actionability_rate",
-            label="Actionability rate",
-            domain="expert_review",
-            unit="ratio",
-            value=_ratio(actionable, resolved_count),
-            numerator=actionable,
-            denominator=resolved_count,
-            coverage=review_coverage,
-            definition=(
-                "Resolved assessments with actionability >=4 divided by all resolved assessments."
-            ),
-            interpretation=(
-                "Share of reviewed findings judged operationally actionable in this evidence set."
-            ),
-            limitations=["This is reviewer judgement, not downstream business impact."],
-        ),
-        _metric(
-            key="evidence_traceability_rate",
-            label="Traceability rate",
-            domain="expert_review",
-            unit="ratio",
-            value=_ratio(traceable, resolved_count),
-            numerator=traceable,
-            denominator=resolved_count,
-            coverage=review_coverage,
-            definition=(
-                "Resolved assessments with traceability >=4 divided by all resolved assessments."
-            ),
-            interpretation=(
-                "Share of reviewed findings with evidence judged sufficiently traceable."
-            ),
-            limitations=["Traceability does not prove factual correctness or causal effect."],
-        ),
-        _metric(
-            key="human_added_finding_count",
-            label="Human-added findings",
-            domain="expert_review",
-            unit="count",
-            value=len(latest_human),
-            numerator=len(latest_human),
-            denominator=len(selected_cases),
-            coverage=review_coverage,
-            definition=(
-                "Count of distinct latest human-added omission findings in included cases."
-            ),
-            interpretation=(
-                "Material omissions captured separately from system findings."
-            ),
-            limitations=[
-                "No semantic deduplication across separately entered human findings is performed."
-            ],
-        ),
-        _metric(
-            key="harmful_false_positive_count",
-            label="Harmful false positives",
-            domain="expert_review",
-            unit="count",
-            value=harmful,
-            numerator=harmful,
-            denominator=resolved_count,
-            coverage=review_coverage,
-            definition=(
-                "Resolved system findings whose final decision is harmful_false_positive."
-            ),
-            interpretation=(
-                "Potentially damaging unsupported conclusions requiring methodology review."
-            ),
-            limitations=["Only explicit reviewer/adjudicator decisions are counted."],
-        ),
-        _metric(
-            key="reviewer_disagreement_rate",
-            label="Reviewer disagreement",
-            domain="expert_review",
-            unit="ratio",
-            value=_ratio(len(material_disagreement), len(independent)),
-            numerator=len(material_disagreement),
-            denominator=len(independent),
-            coverage=_ratio(len(independent), len(selected_disagreements)),
-            definition=(
-                "Findings with material disagreement divided by findings with at least "
-                "two independent reviewers; adjudicated disagreements remain in the numerator."
-            ),
-            interpretation="Methodology-consistency signal, not model accuracy.",
-            limitations=[
-                "The material-disagreement policy remains provisional pending client sign-off."
-            ],
-        ),
-        _metric(
-            key="operator_touch_time_minutes",
-            label="Operator touch time",
-            domain="workflow",
-            unit="minutes_per_case_median",
-            value=round(_median(touch_minutes), 4) if touch_minutes else None,
-            numerator=round(sum(touch_minutes), 4) if touch_minutes else None,
-            denominator=len(measured_cases),
-            coverage=workflow_coverage,
-            definition=(
-                "Median of per-case sums of explicitly recorded operator touch seconds, "
-                "converted to minutes."
-            ),
-            interpretation=(
-                "Active operator effort kept separate from runtime and wall-clock duration."
-            ),
-            limitations=[
-                "No touch time is inferred from audit timestamps or browser-session spans."
-            ],
-        ),
-        _metric(
-            key="manual_action_count",
-            label="Manual action count",
-            domain="workflow",
-            unit="actions_per_case_median",
-            value=_median(actions_per_case),
-            numerator=sum(actions_per_case) if actions_per_case else None,
-            denominator=len(measured_cases),
-            coverage=workflow_coverage,
-            definition=(
-                "Median of per-case sums of explicitly recorded non-negative manual actions."
-            ),
-            interpretation=(
-                "Workflow burden indicator; lower is not automatically better if controls are removed."
-            ),
-            limitations=["Action-count taxonomy must stay stable across compared runs."],
-        ),
-        _metric(
-            key="historical_metric_coverage",
-            label="Outcome coverage",
-            domain="outcomes",
-            unit="ratio",
-            value=outcome_coverage,
-            numerator=len(outcome_cases),
-            denominator=len(selected_cases),
-            coverage=1.0 if selected_cases else None,
-            definition=(
-                "Included cases with at least one provenance-bound observed campaign outcome "
-                "divided by included cases."
-            ),
-            interpretation=(
-                "Descriptive evidence coverage only; campaign outcomes are not attributed "
-                "causally to an individual asset."
-            ),
-            limitations=[
-                "Missing outcomes remain missing; uncertain linkage is not promoted to exact."
-            ],
-        ),
-    ]
+    metrics = build_metrics(
+        yes_correct=yes_correct,
+        correctness_assessed=correctness_assessed,
+        review_coverage=review_coverage,
+        actionable=actionable,
+        resolved_count=resolved_count,
+        traceable=traceable,
+        latest_human=latest_human,
+        selected_cases=selected_cases,
+        harmful=harmful,
+        material_disagreement=material_disagreement,
+        independent=independent,
+        selected_disagreements=selected_disagreements,
+        touch_minutes=touch_minutes,
+        measured_cases=measured_cases,
+        actions_per_case=actions_per_case,
+        workflow_coverage=workflow_coverage,
+        outcome_coverage=outcome_coverage,
+        outcome_cases=outcome_cases,
+    )
 
     system_by_case = Counter(review_case.values())
     resolved_by_case = Counter(item["case_id"] for item in resolved)
@@ -670,64 +514,14 @@ def compose_dashboard(
         ],
     )
 
-
 def dashboard_json_bytes(
     project_id: str,
     *,
     evidence_filter: EvidenceFilter = "all",
 ) -> bytes:
-    payload = compose_dashboard(project_id, evidence_filter=evidence_filter).model_dump(
-        mode="json"
-    )
-    return (
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    ).encode("utf-8")
+    from src.modules.calibration_dashboard.exports import dashboard_json_bytes as render
 
-
-def _fit_sheet(sheet) -> None:
-    sheet.freeze_panes = "A2"
-    sheet.auto_filter.ref = sheet.dimensions
-    for column in sheet.columns:
-        width = min(
-            60,
-            max(12, max(len(str(cell.value or "")) for cell in column) + 2),
-        )
-        sheet.column_dimensions[get_column_letter(column[0].column)].width = width
-    for cell in sheet[1]:
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(wrap_text=True, vertical="top")
-
-
-def _normalize_zip(data: bytes) -> bytes:
-    source = io.BytesIO(data)
-    target = io.BytesIO()
-    with zipfile.ZipFile(source, "r") as incoming, zipfile.ZipFile(
-        target, "w", zipfile.ZIP_DEFLATED
-    ) as outgoing:
-        for name in sorted(incoming.namelist()):
-            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
-            info.compress_type = zipfile.ZIP_DEFLATED
-            info.external_attr = 0o644 << 16
-            content = incoming.read(name)
-            if name == "docProps/core.xml":
-                content = _normalize_core_properties(content)
-            outgoing.writestr(info, content)
-    return target.getvalue()
-
-
-def _normalize_core_properties(xml_data: bytes) -> bytes:
-    xml = xml_data.decode("utf-8")
-    xml = re.sub(
-        r"(<dcterms:modified[^>]*>)[^<]*(</dcterms:modified>)",
-        r"\g<1>1970-01-01T00:00:00Z\g<2>",
-        xml,
-    )
-    xml = re.sub(
-        r"(<dcterms:created[^>]*>)[^<]*(</dcterms:created>)",
-        r"\g<1>1970-01-01T00:00:00Z\g<2>",
-        xml,
-    )
-    return xml.encode("utf-8")
+    return render(project_id, evidence_filter=evidence_filter)
 
 
 def dashboard_xlsx_bytes(
@@ -735,109 +529,9 @@ def dashboard_xlsx_bytes(
     *,
     evidence_filter: EvidenceFilter = "all",
 ) -> bytes:
-    dashboard = compose_dashboard(project_id, evidence_filter=evidence_filter)
-    workbook = Workbook()
-    workbook.properties.creator = "Arvectum Creative Test Agent"
-    workbook.properties.title = "Calibration Quality Dashboard"
-    workbook.properties.created = EPOCH.replace(tzinfo=None)
-    workbook.properties.modified = EPOCH.replace(tzinfo=None)
+    from src.modules.calibration_dashboard.exports import dashboard_xlsx_bytes as render
 
-    summary = workbook.active
-    summary.title = "Summary"
-    summary.append(["Field", "Value"])
-    summary.append(["Project ID", dashboard.project_id])
-    summary.append(["Evidence filter", dashboard.evidence_filter])
-    summary.append(["Generated from latest evidence", dashboard.generated_at.isoformat()])
-    summary.append(["Schema version", dashboard.schema_version])
-    summary.append(["Definitions version", dashboard.definitions_version])
-    summary.append(["Validated model accuracy claimed", "false"])
-    summary.append(["Causal interpretation allowed", "false"])
-    summary.append(["Automatic threshold tuning", "false"])
-    _fit_sheet(summary)
-
-    metrics = workbook.create_sheet("Metrics")
-    metrics.append(
-        [
-            "key",
-            "label",
-            "domain",
-            "unit",
-            "value",
-            "numerator",
-            "denominator",
-            "coverage",
-            "evidence_status",
-            "definition",
-            "interpretation",
-            "limitations",
-        ]
-    )
-    for item in dashboard.metrics:
-        metrics.append(
-            [
-                item.key,
-                item.label,
-                item.domain,
-                item.unit,
-                item.value,
-                item.numerator,
-                item.denominator,
-                item.coverage,
-                item.evidence_status,
-                item.definition,
-                item.interpretation,
-                " | ".join(item.limitations),
-            ]
-        )
-    _fit_sheet(metrics)
-
-    cases = workbook.create_sheet("Cases")
-    cases.append(
-        [
-            "case_id",
-            "campaign_id",
-            "evidence_class",
-            "inclusion_status",
-            "system_findings",
-            "resolved_findings",
-            "unresolved_findings",
-            "human_added_findings",
-            "outcome_observations",
-            "workflow_measurements",
-            "operator_touch_seconds",
-            "manual_action_count",
-        ]
-    )
-    for item in dashboard.cases:
-        cases.append(
-            [
-                item.case_id,
-                item.campaign_id,
-                item.evidence_class,
-                item.inclusion_status,
-                item.system_finding_count,
-                item.resolved_finding_count,
-                item.unresolved_finding_count,
-                item.human_added_finding_count,
-                item.outcome_observation_count,
-                item.workflow_measurement_count,
-                item.operator_touch_seconds,
-                item.manual_action_count,
-            ]
-        )
-    _fit_sheet(cases)
-
-    claims = workbook.create_sheet("Claim Boundary")
-    claims.append(["claim", "allowed_or_performed"])
-    for key, value in sorted(dashboard.claim_boundary.items()):
-        claims.append([key, str(value).lower()])
-    for item in dashboard.limitations:
-        claims.append(["limitation", item])
-    _fit_sheet(claims)
-
-    raw = io.BytesIO()
-    workbook.save(raw)
-    return _normalize_zip(raw.getvalue())
+    return render(project_id, evidence_filter=evidence_filter)
 
 
 def export_manifest(
@@ -845,25 +539,7 @@ def export_manifest(
     *,
     evidence_filter: EvidenceFilter = "all",
 ) -> dict[str, Any]:
-    json_data = dashboard_json_bytes(project_id, evidence_filter=evidence_filter)
-    xlsx_data = dashboard_xlsx_bytes(project_id, evidence_filter=evidence_filter)
-    dashboard = compose_dashboard(project_id, evidence_filter=evidence_filter)
-    return {
-        "schema_version": "calibration-quality-dashboard-export/1.0",
-        "project_id": project_id,
-        "evidence_filter": evidence_filter,
-        "generated_at": dashboard.generated_at.isoformat(),
-        "claim_boundary": dashboard.claim_boundary,
-        "files": [
-            {
-                "name": "calibration_dashboard.json",
-                "size_bytes": len(json_data),
-                "sha256": hashlib.sha256(json_data).hexdigest(),
-            },
-            {
-                "name": "calibration_dashboard.xlsx",
-                "size_bytes": len(xlsx_data),
-                "sha256": hashlib.sha256(xlsx_data).hexdigest(),
-            },
-        ],
-    }
+    from src.modules.calibration_dashboard.exports import export_manifest as build
+
+    return build(project_id, evidence_filter=evidence_filter)
+

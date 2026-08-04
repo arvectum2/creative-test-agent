@@ -25,9 +25,9 @@ def default_legacy_ui_tests_to_english(monkeypatch):
     specify a locale use English because the legacy UI test suite asserts the
     original English labels.
     """
-    import src.modules.ui.router as ui_router
+    import src.modules.ui.common as ui_common
 
-    original_detect_lang = ui_router._detect_lang
+    original_detect_lang = ui_common.detect_lang
 
     def detect_lang(request):
         query_lang = request.query_params.get("lang", "")
@@ -36,4 +36,4 @@ def default_legacy_ui_tests_to_english(monkeypatch):
             return original_detect_lang(request)
         return "en"
 
-    monkeypatch.setattr(ui_router, "_detect_lang", detect_lang)
+    monkeypatch.setattr(ui_common, "detect_lang", detect_lang)

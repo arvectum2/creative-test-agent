@@ -33,6 +33,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from scripts.backup_common import load_backup_manifest, sha256_file, validate_backup
 from scripts.backup_data import create_backup
 from scripts.restore_data import restore_backup
+from scripts.operator_rehearsal_checklist import blank_operator_checklist as _blank_operator_checklist
 
 REHEARSAL_ID = "PRE-PILOT-006"
 REHEARSAL_VERSION = "1.0.0"
@@ -162,47 +163,6 @@ def _workspace_settings(live: Path, backup_root: Path) -> Iterator[None]:
             setattr(settings, name, value)
 
 
-def _blank_operator_checklist() -> dict[str, Any]:
-    tasks = [
-        ("OP-01", "Confirm the rehearsal workspace contains no client data and the server is stopped."),
-        ("OP-02", "Run the documented command without developer assistance."),
-        ("OP-03", "Open rehearsal_manifest.json and identify the overall automated status."),
-        ("OP-04", "Locate the original import, data-review XLSX and provisional one-page PPTX/HTML artifacts."),
-        ("OP-05", "Validate the primary backup with scripts/check_backup.py."),
-        ("OP-06", "Identify the pre-restore backup and explain why it exists."),
-        ("OP-07", "Start the restored local application using the rehearsal workspace configuration."),
-        ("OP-08", "Find the restored project and trace one report statement to its source evidence."),
-        ("OP-09", "Download the restored PPTX and confirm that unavailable/degraded capabilities remain labelled."),
-        ("OP-10", "Record blockers, assistance requested, elapsed time and final operator decision."),
-    ]
-    return {
-        "rehearsal_id": REHEARSAL_ID,
-        "rehearsal_version": REHEARSAL_VERSION,
-        "automated_drill_is_human_signoff": False,
-        "operator": "",
-        "observer": "",
-        "started_at": None,
-        "completed_at": None,
-        "assistance_requested": None,
-        "elapsed_minutes": None,
-        "final_decision": "not_started",
-        "allowed_final_decisions": ["passed", "passed_with_observations", "repeat_required", "blocked"],
-        "tasks": [
-            {
-                "task_id": task_id,
-                "instruction": instruction,
-                "status": "not_started",
-                "allowed_statuses": ["not_started", "passed", "failed", "not_applicable"],
-                "evidence": "",
-                "observation": "",
-            }
-            for task_id, instruction in tasks
-        ],
-        "blockers": [],
-        "notes": "",
-    }
-
-
 def _phase(timeline: list[dict[str, Any]], name: str):
     class Phase:
         def __enter__(self):
@@ -233,6 +193,132 @@ def _critical_file(path: Path, root: Path, artifact_type: str) -> dict[str, Any]
         "size_bytes": path.stat().st_size,
         "sha256": sha256_file(path),
     }
+
+
+
+
+def _finalize_rehearsal(
+    *,
+    root: Path,
+    live: Path,
+    evidence_dir: Path,
+    manifest_path: Path,
+    timeline: list[dict[str, Any]],
+    checks: dict[str, dict[str, Any]],
+    started: float,
+    demo: dict[str, Any],
+    one_page: Any,
+    primary_backup: Path,
+    critical_files: list[dict[str, Any]],
+) -> dict[str, Any]:
+    operator_checklist = _blank_operator_checklist()
+    checklist_path = evidence_dir / "operator_checklist.json"
+    _write_json(checklist_path, operator_checklist)
+
+    timeline_path = evidence_dir / "automated_timeline.csv"
+    with timeline_path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(
+            stream,
+            fieldnames=["phase", "started_at", "completed_at", "duration_seconds", "status", "error"],
+        )
+        writer.writeheader()
+        writer.writerows(timeline)
+
+    missing_checks = sorted(_REQUIRED_AUTOMATED_CHECKS - set(checks))
+    failed_checks = sorted(name for name, result in checks.items() if result["status"] != "passed")
+    overall_pass = not missing_checks and not failed_checks
+    total_seconds = round(time.perf_counter() - started, 4)
+    manifest = {
+        "rehearsal_id": REHEARSAL_ID,
+        "rehearsal_version": REHEARSAL_VERSION,
+        "status": "passed" if overall_pass else "failed",
+        "generated_at": _utc_now(),
+        "workspace": str(root),
+        "live_workspace": str(live),
+        "synthetic_data_only": True,
+        "contains_client_data": False,
+        "local_only": True,
+        "automated_recovery_drill_completed": overall_pass,
+        "human_operator_signoff_completed": False,
+        "human_usability_proven": False,
+        "developer_assistance_absence_proven": False,
+        "same_configured_paths_required_for_restore": True,
+        "total_duration_seconds": total_seconds,
+        "platform": {
+            "python": platform.python_version(),
+            "system": platform.system(),
+            "machine": platform.machine(),
+        },
+        "project": demo["project"],
+        "runs": {
+            "data_quality_run_id": demo["data_quality"]["run_id"],
+            "prediction_readiness_run_id": demo["prediction_readiness"]["run_id"],
+            "quantitative_study_id": demo["quantitative_proxy"]["study_id"],
+            "data_review_report_id": demo["report"]["id"],
+            "client_one_page_report_id": one_page.id,
+        },
+        "primary_backup": {
+            "path": str(primary_backup),
+            "manifest": load_backup_manifest(primary_backup),
+            "validation_errors": validate_backup(primary_backup),
+        },
+        "pre_restore_backup": checks["pre_restore_backup_verified"]["evidence"],
+        "automated_checks": checks,
+        "required_automated_checks": sorted(_REQUIRED_AUTOMATED_CHECKS),
+        "missing_automated_checks": missing_checks,
+        "failed_automated_checks": failed_checks,
+        "critical_files": critical_files,
+        "timeline_file": str(timeline_path.relative_to(root)),
+        "operator_checklist_file": str(checklist_path.relative_to(root)),
+        "evidence_boundary": {
+            "automated_drill_is_not_human_signoff": True,
+            "recovery_success_is_not_model_accuracy": True,
+            "synthetic_results_are_not_market_results": True,
+            "no_client_data_used": True,
+            "prediction_generated": False,
+        },
+    }
+    _write_json(manifest_path, manifest)
+
+    report_path = evidence_dir / "automated_rehearsal_report.md"
+    report_path.write_text(
+        "\n".join(
+            [
+                f"# {REHEARSAL_ID} — automated operator/recovery rehearsal",
+                "",
+                f"Status: **{manifest['status'].upper()}**",
+                f"Duration: {total_seconds:.2f} seconds",
+                "",
+                "## Verified automatically",
+                "",
+                *[f"- {name}: {result['status']}" for name, result in sorted(checks.items())],
+                "",
+                "## Evidence boundary",
+                "",
+                "This run proves that the synthetic workspace can be backed up, deliberately damaged, restored at the same configured paths and reopened with its critical records and files intact.",
+                "",
+                "It does not prove that a non-developer operator can complete the workflow unaided. Complete evidence/operator_checklist.json during a separate observed session.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    evidence_files = [manifest_path, checklist_path, timeline_path, report_path]
+    evidence_manifest = {
+        "rehearsal_id": REHEARSAL_ID,
+        "generated_at": _utc_now(),
+        "files": [
+            {
+                "path": str(path.relative_to(root)),
+                "size_bytes": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
+            for path in evidence_files
+        ],
+    }
+    _write_json(root / "evidence_manifest.json", evidence_manifest)
+    return manifest
 
 
 def run_rehearsal(workspace: str | Path, *, respondent_count: int = 12, reset: bool = True) -> dict[str, Any]:
@@ -447,114 +533,19 @@ def run_rehearsal(workspace: str | Path, *, respondent_count: int = 12, reset: b
                     file_results,
                 )
 
-        operator_checklist = _blank_operator_checklist()
-        checklist_path = evidence_dir / "operator_checklist.json"
-        _write_json(checklist_path, operator_checklist)
-
-        timeline_path = evidence_dir / "automated_timeline.csv"
-        with timeline_path.open("w", encoding="utf-8", newline="") as stream:
-            writer = csv.DictWriter(
-                stream,
-                fieldnames=["phase", "started_at", "completed_at", "duration_seconds", "status", "error"],
-            )
-            writer.writeheader()
-            writer.writerows(timeline)
-
-        missing_checks = sorted(_REQUIRED_AUTOMATED_CHECKS - set(checks))
-        failed_checks = sorted(name for name, result in checks.items() if result["status"] != "passed")
-        overall_pass = not missing_checks and not failed_checks
-        total_seconds = round(time.perf_counter() - started, 4)
-        manifest = {
-            "rehearsal_id": REHEARSAL_ID,
-            "rehearsal_version": REHEARSAL_VERSION,
-            "status": "passed" if overall_pass else "failed",
-            "generated_at": _utc_now(),
-            "workspace": str(root),
-            "live_workspace": str(live),
-            "synthetic_data_only": True,
-            "contains_client_data": False,
-            "local_only": True,
-            "automated_recovery_drill_completed": overall_pass,
-            "human_operator_signoff_completed": False,
-            "human_usability_proven": False,
-            "developer_assistance_absence_proven": False,
-            "same_configured_paths_required_for_restore": True,
-            "total_duration_seconds": total_seconds,
-            "platform": {
-                "python": platform.python_version(),
-                "system": platform.system(),
-                "machine": platform.machine(),
-            },
-            "project": demo["project"],
-            "runs": {
-                "data_quality_run_id": demo["data_quality"]["run_id"],
-                "prediction_readiness_run_id": demo["prediction_readiness"]["run_id"],
-                "quantitative_study_id": demo["quantitative_proxy"]["study_id"],
-                "data_review_report_id": demo["report"]["id"],
-                "client_one_page_report_id": one_page.id,
-            },
-            "primary_backup": {
-                "path": str(primary_backup),
-                "manifest": load_backup_manifest(primary_backup),
-                "validation_errors": validate_backup(primary_backup),
-            },
-            "pre_restore_backup": checks["pre_restore_backup_verified"]["evidence"],
-            "automated_checks": checks,
-            "required_automated_checks": sorted(_REQUIRED_AUTOMATED_CHECKS),
-            "missing_automated_checks": missing_checks,
-            "failed_automated_checks": failed_checks,
-            "critical_files": critical_files,
-            "timeline_file": str(timeline_path.relative_to(root)),
-            "operator_checklist_file": str(checklist_path.relative_to(root)),
-            "evidence_boundary": {
-                "automated_drill_is_not_human_signoff": True,
-                "recovery_success_is_not_model_accuracy": True,
-                "synthetic_results_are_not_market_results": True,
-                "no_client_data_used": True,
-                "prediction_generated": False,
-            },
-        }
-        _write_json(manifest_path, manifest)
-
-        report_path = evidence_dir / "automated_rehearsal_report.md"
-        report_path.write_text(
-            "\n".join(
-                [
-                    f"# {REHEARSAL_ID} — automated operator/recovery rehearsal",
-                    "",
-                    f"Status: **{manifest['status'].upper()}**",
-                    f"Duration: {total_seconds:.2f} seconds",
-                    "",
-                    "## Verified automatically",
-                    "",
-                    *[f"- {name}: {result['status']}" for name, result in sorted(checks.items())],
-                    "",
-                    "## Evidence boundary",
-                    "",
-                    "This run proves that the synthetic workspace can be backed up, deliberately damaged, restored at the same configured paths and reopened with its critical records and files intact.",
-                    "",
-                    "It does not prove that a non-developer operator can complete the workflow unaided. Complete evidence/operator_checklist.json during a separate observed session.",
-                    "",
-                ]
-            ),
-            encoding="utf-8",
+        return _finalize_rehearsal(
+            root=root,
+            live=live,
+            evidence_dir=evidence_dir,
+            manifest_path=manifest_path,
+            timeline=timeline,
+            checks=checks,
+            started=started,
+            demo=demo,
+            one_page=one_page,
+            primary_backup=primary_backup,
+            critical_files=critical_files,
         )
-
-        evidence_files = [manifest_path, checklist_path, timeline_path, report_path]
-        evidence_manifest = {
-            "rehearsal_id": REHEARSAL_ID,
-            "generated_at": _utc_now(),
-            "files": [
-                {
-                    "path": str(path.relative_to(root)),
-                    "size_bytes": path.stat().st_size,
-                    "sha256": sha256_file(path),
-                }
-                for path in evidence_files
-            ],
-        }
-        _write_json(root / "evidence_manifest.json", evidence_manifest)
-        return manifest
     except Exception as exc:
         failure = {
             "rehearsal_id": REHEARSAL_ID,

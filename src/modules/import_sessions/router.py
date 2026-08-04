@@ -21,23 +21,15 @@ from src.modules.import_sessions.service import (
     verify_import_session,
 )
 from src.shared.errors import AppError
-from src.shared.security.auth import get_current_user_from_request
+from src.shared.security.auth import get_optional_user_id
 from src.shared.security.hardening import safe_download_name
 
 router = APIRouter(prefix="/import-sessions", tags=["import-sessions"])
 
 
-def _user_id(request: Request) -> str | None:
-    try:
-        user = get_current_user_from_request(request)
-    except Exception:
-        return None
-    return user.get("user_id") or user.get("id")
-
-
 @router.post("", response_model=ImportSessionResponse, status_code=201)
 def post_create_import_session(body: CreateImportSessionRequest, request: Request):
-    session = create_import_session(body, created_by_user_id=_user_id(request))
+    session = create_import_session(body, created_by_user_id=get_optional_user_id(request))
     write_audit_event(
         "import_session_created",
         "import_session",
@@ -88,7 +80,7 @@ async def post_import_source_file(
         content=content,
         content_type=file.content_type,
         metadata=parsed_metadata,
-        uploaded_by_user_id=_user_id(request),
+        uploaded_by_user_id=get_optional_user_id(request),
     )
     write_audit_event(
         "import_source_file_stored",

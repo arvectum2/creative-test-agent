@@ -4,6 +4,8 @@ from src.modules.audit_log.service import write_audit_event
 
 from .schemas import ClientResponse, CreateClientRequest
 from .service import create_client, get_client, list_clients
+from src.modules.projects.schemas import ProjectResponse
+from src.modules.projects.service import list_projects
 
 router = APIRouter(prefix="/clients", tags=["clients"])
 
@@ -26,3 +28,10 @@ def get_client_by_id(client_id: str):
     if client is None:
         raise HTTPException(status_code=404, detail="Client not found")
     return client
+
+
+@router.get("/{client_id}/projects", response_model=list[ProjectResponse])
+def get_client_projects(client_id: str):
+    """List projects for a client from the client resource hierarchy."""
+
+    return list_projects(client_id=client_id)

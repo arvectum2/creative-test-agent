@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CreateClientRequest(BaseModel):
@@ -18,6 +18,6 @@ class ClientResponse(BaseModel):
     description: str | None = None
     contact_name: str | None = None
     contact_email: str | None = None
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime | None = None

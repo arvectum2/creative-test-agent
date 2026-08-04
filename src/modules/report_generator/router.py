@@ -2,6 +2,11 @@ from fastapi import APIRouter, HTTPException, Query
 
 from src.modules.audit_log.service import write_audit_event
 from src.modules.report_generator.comparison import compare_test_runs
+from src.modules.report_generator.contracts import (
+    REPORT_FORMATS,
+    REPORT_MODES,
+    supported_values,
+)
 from src.modules.report_generator.schemas import (
     CompareRequest,
     CompareResponse,
@@ -11,9 +16,6 @@ from src.modules.report_generator.service import generate_report
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
-_VALID_MODES = {"internal", "client_facing"}
-_VALID_FORMATS = {"json", "markdown", "html", "pdf_stub"}
-
 
 @router.get("/{test_run_id}", response_model=ReportResponse)
 def get_report(
@@ -21,23 +23,23 @@ def get_report(
     format: str = Query("json", alias="format"),
     mode: str = Query("internal", alias="mode"),
 ):
-    if format not in _VALID_FORMATS:
+    if format not in REPORT_FORMATS:
         raise HTTPException(
             status_code=400,
             detail={
                 "error": {
                     "code": "unsupported_report_format",
-                    "message": f"Unsupported format '{format}'. Valid: {', '.join(sorted(_VALID_FORMATS))}",
+                    "message": f"Unsupported format '{format}'. Valid: {supported_values(REPORT_FORMATS)}",
                 }
             },
         )
-    if mode not in _VALID_MODES:
+    if mode not in REPORT_MODES:
         raise HTTPException(
             status_code=400,
             detail={
                 "error": {
                     "code": "unsupported_report_mode",
-                    "message": f"Unsupported mode '{mode}'. Valid: {', '.join(sorted(_VALID_MODES))}",
+                    "message": f"Unsupported mode '{mode}'. Valid: {supported_values(REPORT_MODES)}",
                 }
             },
         )
@@ -96,13 +98,13 @@ def save_report_findings(test_run_id: str):
 
 @router.post("/compare", response_model=CompareResponse)
 def compare_reports(req: CompareRequest):
-    if req.report_mode not in _VALID_MODES:
+    if req.report_mode not in REPORT_MODES:
         raise HTTPException(
             status_code=400,
             detail={
                 "error": {
                     "code": "unsupported_report_mode",
-                    "message": f"Unsupported mode '{req.report_mode}'. Valid: {', '.join(sorted(_VALID_MODES))}",
+                    "message": f"Unsupported mode '{req.report_mode}'. Valid: {supported_values(REPORT_MODES)}",
                 }
             },
         )

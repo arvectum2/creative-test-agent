@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from src.modules.report_generator.contracts import REPORT_FORMATS, REPORT_MODES
 from src.modules.report_generator.models import Report
 from src.modules.report_generator.renderers import build_html_report, build_markdown_report
 from src.modules.report_generator.schemas import (
@@ -30,9 +31,6 @@ def _get_next_version(test_run_id: str, mode: str, fmt: str) -> int:
         ).count()
         return existing + 1
 
-
-_VALID_MODES = {"internal", "client_facing"}
-_VALID_FORMATS = {"json", "markdown", "html", "pdf_stub"}
 
 
 def _build_visual_notes(run) -> str:
@@ -82,9 +80,9 @@ def _build_mode_report(
     mode: str,
     fmt: str,
 ) -> dict:
-    if mode not in _VALID_MODES:
+    if mode not in REPORT_MODES:
         raise ValueError(f"unsupported_report_mode: {mode}")
-    if fmt not in _VALID_FORMATS:
+    if fmt not in REPORT_FORMATS:
         raise ValueError(f"unsupported_report_format: {fmt}")
 
     scorecard = []

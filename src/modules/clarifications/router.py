@@ -18,17 +18,9 @@ from src.modules.clarifications.service import (
     list_clarification_responses,
 )
 from src.shared.errors import AppError
-from src.shared.security.auth import get_current_user_from_request
+from src.shared.security.auth import get_optional_user_id
 
 router = APIRouter(tags=["clarifications"])
-
-
-def _user_id(request: Request) -> str | None:
-    try:
-        user = get_current_user_from_request(request)
-    except Exception:
-        return None
-    return user.get("user_id") or user.get("id")
 
 
 @router.post(
@@ -45,7 +37,7 @@ def post_clarifications(
         audience=body.audience,
         max_questions=body.max_questions,
         force=body.force,
-        created_by_user_id=_user_id(request),
+        created_by_user_id=get_optional_user_id(request),
     )
     write_audit_event(
         "clarification_run_generated",
@@ -118,7 +110,7 @@ def post_clarification_response(
     result = record_clarification_response(
         question_id,
         body,
-        responded_by_user_id=_user_id(request),
+        responded_by_user_id=get_optional_user_id(request),
     )
     write_audit_event(
         "clarification_response_recorded",

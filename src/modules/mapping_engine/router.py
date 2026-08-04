@@ -21,17 +21,9 @@ from src.modules.mapping_engine.service import (
     list_mapping_profiles,
 )
 from src.shared.errors import AppError
-from src.shared.security.auth import get_current_user_from_request
+from src.shared.security.auth import get_optional_user_id
 
 router = APIRouter(tags=["mapping-engine"])
-
-
-def _user_id(request: Request) -> str | None:
-    try:
-        user = get_current_user_from_request(request)
-    except Exception:
-        return None
-    return user.get("user_id") or user.get("id")
 
 
 @router.get("/mapping-fields", response_model=list[MappingFieldResponse])
@@ -56,7 +48,7 @@ def post_generate_mapping(
         table_id,
         mapping_profile_id=body.mapping_profile_id,
         force=body.force,
-        created_by_user_id=_user_id(request),
+        created_by_user_id=get_optional_user_id(request),
     )
     write_audit_event(
         "source_column_mapping_generated",
@@ -101,7 +93,7 @@ def patch_column_mapping(
         table_id,
         column_id,
         body,
-        decided_by_user_id=_user_id(request),
+        decided_by_user_id=get_optional_user_id(request),
     )
     write_audit_event(
         "source_column_mapping_decided",
@@ -120,7 +112,7 @@ def patch_column_mapping(
 
 @router.post("/mapping-profiles", response_model=MappingProfileResponse, status_code=201)
 def post_create_mapping_profile(body: CreateMappingProfileRequest, request: Request):
-    profile = create_mapping_profile(body, created_by_user_id=_user_id(request))
+    profile = create_mapping_profile(body, created_by_user_id=get_optional_user_id(request))
     write_audit_event(
         "mapping_profile_created",
         "mapping_profile",
@@ -169,7 +161,7 @@ def post_apply_mapping_profile(
         table_id,
         mapping_profile_id=body.mapping_profile_id,
         force=body.force,
-        created_by_user_id=_user_id(request),
+        created_by_user_id=get_optional_user_id(request),
     )
     write_audit_event(
         "mapping_profile_applied",

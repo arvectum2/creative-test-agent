@@ -286,9 +286,14 @@ POST /exports/comparison/pptx
 source .venv/bin/activate
 python -m pytest tests/ -v
 
+# Structural technical-debt gate
+make code-health
+
 # Mandatory baseline verification used by GitHub Actions
 make ci-check
 ```
+
+The August 2026 repository-wide refactor and its executable debt controls are documented in [docs/refactoring/codebase_refactor_2026_08.md](docs/refactoring/codebase_refactor_2026_08.md).
 
 ## API Overview
 

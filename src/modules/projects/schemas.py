@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .models import ProjectStatus
 
@@ -18,6 +18,6 @@ class ProjectResponse(BaseModel):
     name: str
     description: str | None = None
     status: str
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime | None = None

@@ -1,6 +1,11 @@
+"""Domain-level errors that can cross service and API boundaries."""
+
+from __future__ import annotations
+
+
 class AppError(Exception):
-    def __init__(self, code: str, message: str, status_code: int = 400):
+    def __init__(self, code: str, message: str, status_code: int = 400) -> None:
+        super().__init__(message)
         self.code = code
         self.message = message
         self.status_code = status_code
-        super().__init__(message)
