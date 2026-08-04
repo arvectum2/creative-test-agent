@@ -1,0 +1,97 @@
+name: CTA-PILOT-PREP-003
+
+on:
+  pull_request:
+    paths:
+      - "scripts/cta_pilot_prep_003.py"
+      - "scripts/cta_pilot_prep_003_support.py"
+      - "scripts/cta_pilot_prep_003_runtime.py"
+      - "src/modules/pilot_intake/**"
+      - "src/modules/blind_runs/**"
+      - "src/modules/finding_reviews/**"
+      - "src/modules/calibration_dashboard/**"
+      - "tests/test_cta_pilot_prep_003.py"
+      - "tests/fixtures/pilot_rehearsal/**"
+      - "docs/acceptance/CTA-PILOT-PREP-003.md"
+      - "docs/local/CTA-PILOT-PREP-003_MAC_MINI_OPENCODE.md"
+      - "docs/runbooks/CTA-PILOT-PREP-003_SYNTHETIC_REHEARSAL.md"
+      - ".github/workflows/cta-pilot-prep-003.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cta-pilot-prep-003-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-acceptance:
+    name: Full synthetic controlled-pilot rehearsal
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CTA_DATABASE_URL: sqlite:///./.ci/cta-pilot-prep-003.db
+      CTA_LOCAL_ONLY_MODE: "true"
+      CTA_HOST: 127.0.0.1
+      CTA_PUBLIC_BASE_URL: http://localhost:8000
+      CTA_TRUSTED_HOSTS: localhost,127.0.0.1,test,testserver
+      CTA_CORS_ALLOWED_ORIGINS: ""
+      CTA_ALLOW_CLOUD_LLM: "false"
+      CTA_LLM_PROVIDER: stub
+      CTA_VISION_PROVIDER: stub
+      CTA_ENABLE_AUTH: "false"
+      CTA_SECURITY_FAIL_CLOSED: "true"
+      CTA_SECURITY_HEADERS_ENABLED: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install project and test dependencies
+        run: |
+          python -m pip install --upgrade pip --quiet
+          python -m pip install -e ".[dev]" --quiet
+      - name: Prepare isolated state
+        run: |
+          rm -rf .ci
+          mkdir -p .ci/cta-pilot-prep-003-artifacts
+          mkdir -p data/storage data/exports data/backups
+      - name: Compile rehearsal implementation
+        run: |
+          python -m compileall -q \
+            scripts/cta_pilot_prep_003.py \
+            scripts/cta_pilot_prep_003_support.py \
+            scripts/cta_pilot_prep_003_runtime.py \
+            tests/test_cta_pilot_prep_003.py
+      - name: Verify model registry and migrations
+        run: |
+          python scripts/check_model_registry.py
+          python scripts/run_migrations.py
+          python scripts/check_migrations.py
+      - name: Validate frozen synthetic case matrix
+        run: |
+          python scripts/cta_pilot_prep_003.py validate \
+            --fixture tests/fixtures/pilot_rehearsal/cases.json
+      - name: Run full synthetic rehearsal harness
+        run: |
+          python scripts/cta_pilot_prep_003_runtime.py \
+            --fixture tests/fixtures/pilot_rehearsal/cases.json \
+            --output-dir .ci/cta-pilot-prep-003-artifacts
+      - name: Run targeted acceptance tests
+        run: python -m pytest tests/test_cta_pilot_prep_003.py -q -s
+      - name: Upload sanitized synthetic evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cta-pilot-prep-003-synthetic-evidence
+          path: |
+            .ci/cta-pilot-prep-003-artifacts/pilot-summary.json
+            .ci/cta-pilot-prep-003-artifacts/rehearsal-manifest.json
+            .ci/cta-pilot-prep-003-artifacts/sanitized-run-record.json
+          if-no-files-found: warn
+          retention-days: 7

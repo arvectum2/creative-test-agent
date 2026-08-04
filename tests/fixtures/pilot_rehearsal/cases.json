@@ -1,0 +1,361 @@
+{
+  "cases": [
+    {
+      "asset_references": ["asset-normal-001"],
+      "case_key": "SYN-NORMAL-001",
+      "diagnostic_output": {
+        "findings": [{
+          "confidence": 0.9,
+          "criterion": "message_clarity",
+          "explanation": "The primary message is prominent and readable.",
+          "score": 8.4,
+          "visual_abstention_status": "accepted",
+          "visual_confidence_band": "high",
+          "visual_confidence_score": 0.9,
+          "visual_evidence_refs": ["visual:synthetic:message_clarity"],
+          "visual_traceability_status": "supported"
+        }],
+        "recommendation": "accept",
+        "summary": "The synthetic message is clear and traceable."
+      },
+      "dq": {
+        "blocking_issue_count": 0,
+        "confirmed_mapping_count": 2,
+        "overall_status": "passed",
+        "rejected_mapping_count": 0,
+        "suggested_mapping_count": 0,
+        "total_issue_count": 0,
+        "unmapped_mapping_count": 0,
+        "warning_issue_count": 0
+      },
+      "initial_state": "included",
+      "metrics": {"clicks": 66, "impressions": 1200, "rate": 0.055},
+      "name": "normal",
+      "outcome_payload": {"observations": [{
+        "cg_rate": 0.31,
+        "control_n": 300,
+        "evidence_status": "observed",
+        "metric": "message_recall",
+        "test_n": 302,
+        "tg_rate": 0.36
+      }]},
+      "review_plan": {
+        "expected_status": "agreement",
+        "reviewer_a": {
+          "actionability": 5,
+          "correctness": 5,
+          "decision": "supported",
+          "severity_correctness": "correct",
+          "traceability": 5
+        },
+        "reviewer_b": {
+          "actionability": 4,
+          "correctness": 4,
+          "decision": "supported",
+          "severity_correctness": "correct",
+          "traceability": 5
+        }
+      },
+      "scenario": "normal",
+      "source_files": [{
+        "filename": "synthetic-normal.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "size": 180
+      }],
+      "source_linkage_confidence": "exact",
+      "workflow": {
+        "manual_action_count": 4,
+        "operator_touch_seconds": 150,
+        "status": "completed",
+        "wall_clock_seconds": 480
+      }
+    },
+    {
+      "asset_references": [],
+      "case_key": "SYN-MISSING-001",
+      "diagnostic_output": null,
+      "dq": {
+        "blocking_issue_count": 0,
+        "confirmed_mapping_count": 0,
+        "overall_status": "review_required",
+        "rejected_mapping_count": 0,
+        "suggested_mapping_count": 1,
+        "total_issue_count": 2,
+        "unmapped_mapping_count": 1,
+        "warning_issue_count": 2
+      },
+      "initial_state": "needs_clarification",
+      "metrics": {"clicks": null, "impressions": null, "rate": null},
+      "name": "missing",
+      "outcome_payload": null,
+      "review_plan": null,
+      "scenario": "missing",
+      "source_files": [{
+        "filename": "synthetic-missing.json",
+        "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "size": 96
+      }],
+      "source_linkage_confidence": "missing",
+      "workflow": {
+        "manual_action_count": 3,
+        "operator_touch_seconds": 90,
+        "status": "blocked",
+        "wall_clock_seconds": 120
+      }
+    },
+    {
+      "asset_references": ["asset-conflict-001"],
+      "case_key": "SYN-CONFLICT-001",
+      "diagnostic_output": {
+        "findings": [{
+          "confidence": 0.82,
+          "criterion": "claim_consistency",
+          "explanation": "A prominent claim may conflict with the smaller qualifier.",
+          "score": 6.1,
+          "visual_abstention_status": "accepted",
+          "visual_confidence_band": "high",
+          "visual_confidence_score": 0.82,
+          "visual_evidence_refs": ["visual:synthetic:claim_consistency"],
+          "visual_traceability_status": "supported"
+        }],
+        "recommendation": "review",
+        "summary": "The claim and visual qualifier require independent review."
+      },
+      "dq": {
+        "blocking_issue_count": 0,
+        "confirmed_mapping_count": 2,
+        "overall_status": "review_required",
+        "rejected_mapping_count": 0,
+        "suggested_mapping_count": 0,
+        "total_issue_count": 1,
+        "unmapped_mapping_count": 0,
+        "warning_issue_count": 1
+      },
+      "initial_state": "included",
+      "metrics": {"clicks": 38, "impressions": 950, "rate": 0.04},
+      "name": "conflicting",
+      "outcome_payload": {"observations": [{
+        "cg_rate": 0.44,
+        "control_n": 280,
+        "evidence_status": "observed",
+        "metric": "claim_comprehension",
+        "test_n": 279,
+        "tg_rate": 0.43
+      }]},
+      "review_plan": {
+        "adjudication_decision": "partially_supported",
+        "expected_status": "adjudicated",
+        "reviewer_a": {
+          "actionability": 5,
+          "correctness": 5,
+          "decision": "supported",
+          "severity_correctness": "correct",
+          "traceability": 5
+        },
+        "reviewer_b": {
+          "actionability": 2,
+          "correctness": 1,
+          "decision": "unsupported",
+          "severity_correctness": "overstated",
+          "traceability": 2
+        }
+      },
+      "scenario": "conflicting",
+      "source_files": [{
+        "filename": "synthetic-conflicting.json",
+        "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "size": 210
+      }],
+      "source_linkage_confidence": "exact",
+      "workflow": {
+        "manual_action_count": 8,
+        "operator_touch_seconds": 300,
+        "status": "completed",
+        "wall_clock_seconds": 720
+      }
+    },
+    {
+      "asset_references": ["asset-multi-101", "asset-multi-102"],
+      "case_key": "SYN-MULTI-ASSET-002",
+      "diagnostic_output": {
+        "findings": [{
+          "confidence": 0.84,
+          "criterion": "campaign_set_linkage",
+          "explanation": "The supplied outcome is linked to the campaign set, not one asset.",
+          "score": 6.8,
+          "visual_abstention_status": "accepted",
+          "visual_confidence_band": "high",
+          "visual_confidence_score": 0.84,
+          "visual_evidence_refs": ["visual:synthetic:campaign_set_linkage"],
+          "visual_traceability_status": "supported"
+        }],
+        "recommendation": "review",
+        "summary": "The campaign-set message is readable, but asset-level attribution is unavailable."
+      },
+      "dq": {
+        "blocking_issue_count": 0,
+        "confirmed_mapping_count": 1,
+        "overall_status": "review_required",
+        "rejected_mapping_count": 0,
+        "suggested_mapping_count": 1,
+        "total_issue_count": 1,
+        "unmapped_mapping_count": 0,
+        "warning_issue_count": 1
+      },
+      "initial_state": "included",
+      "metrics": {"clicks": 72, "impressions": 1600, "rate": 0.045},
+      "name": "multi_asset",
+      "outcome_payload": {"observations": [{
+        "cg_rate": 0.27,
+        "control_n": 410,
+        "evidence_status": "campaign_set",
+        "metric": "campaign_recall",
+        "test_n": 408,
+        "tg_rate": 0.3
+      }]},
+      "review_plan": {
+        "expected_status": "agreement",
+        "reviewer_a": {
+          "actionability": 4,
+          "correctness": 4,
+          "decision": "needs_rewording",
+          "severity_correctness": "correct",
+          "traceability": 5
+        },
+        "reviewer_b": {
+          "actionability": 4,
+          "correctness": 4,
+          "decision": "needs_rewording",
+          "severity_correctness": "correct",
+          "traceability": 4
+        }
+      },
+      "scenario": "multi_asset",
+      "source_files": [
+        {
+          "filename": "synthetic-multi-a.png",
+          "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "size": 240
+        },
+        {
+          "filename": "synthetic-multi-b.png",
+          "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "size": 260
+        }
+      ],
+      "source_linkage_confidence": "probable",
+      "workflow": {
+        "manual_action_count": 6,
+        "operator_touch_seconds": 240,
+        "status": "completed",
+        "wall_clock_seconds": 600
+      }
+    },
+    {
+      "asset_references": ["asset-rate-only-002"],
+      "case_key": "SYN-RATE-ONLY-002",
+      "diagnostic_output": null,
+      "dq": {
+        "blocking_issue_count": 0,
+        "confirmed_mapping_count": 1,
+        "overall_status": "review_required",
+        "rejected_mapping_count": 0,
+        "suggested_mapping_count": 0,
+        "total_issue_count": 1,
+        "unmapped_mapping_count": 0,
+        "warning_issue_count": 1
+      },
+      "initial_state": "deferred",
+      "metrics": {"clicks": null, "impressions": null, "rate": 0.034},
+      "name": "rate_only",
+      "outcome_payload": null,
+      "review_plan": null,
+      "scenario": "rate_only",
+      "source_files": [{
+        "filename": "synthetic-rate-only.json",
+        "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "size": 84
+      }],
+      "source_linkage_confidence": "exact",
+      "workflow": {
+        "manual_action_count": 4,
+        "operator_touch_seconds": 120,
+        "status": "blocked",
+        "wall_clock_seconds": 180
+      }
+    },
+    {
+      "asset_references": ["asset-hfp-001"],
+      "case_key": "SYN-HFP-001",
+      "diagnostic_output": {
+        "findings": [{
+          "confidence": 0.88,
+          "criterion": "brand_safety",
+          "explanation": "The wording is presented as a severe brand-safety risk.",
+          "score": 3.2,
+          "visual_abstention_status": "accepted",
+          "visual_confidence_band": "high",
+          "visual_confidence_score": 0.88,
+          "visual_evidence_refs": ["visual:synthetic:brand_safety"],
+          "visual_traceability_status": "supported"
+        }],
+        "recommendation": "reject",
+        "summary": "The synthetic agent flags a brand-safety issue for reviewer challenge."
+      },
+      "dq": {
+        "blocking_issue_count": 0,
+        "confirmed_mapping_count": 2,
+        "overall_status": "passed",
+        "rejected_mapping_count": 0,
+        "suggested_mapping_count": 0,
+        "total_issue_count": 0,
+        "unmapped_mapping_count": 0,
+        "warning_issue_count": 0
+      },
+      "initial_state": "included",
+      "metrics": {"clicks": 44, "impressions": 1100, "rate": 0.04},
+      "name": "harmful_false_positive",
+      "outcome_payload": {"observations": [{
+        "cg_rate": 0.52,
+        "control_n": 350,
+        "evidence_status": "observed",
+        "metric": "brand_trust",
+        "test_n": 352,
+        "tg_rate": 0.53
+      }]},
+      "review_plan": {
+        "adjudication_decision": "harmful_false_positive",
+        "expected_status": "adjudicated",
+        "reviewer_a": {
+          "actionability": 4,
+          "correctness": 4,
+          "decision": "supported",
+          "severity_correctness": "correct",
+          "traceability": 4
+        },
+        "reviewer_b": {
+          "actionability": 1,
+          "correctness": 1,
+          "decision": "harmful_false_positive",
+          "severity_correctness": "overstated",
+          "traceability": 4
+        }
+      },
+      "scenario": "harmful_false_positive",
+      "source_files": [{
+        "filename": "synthetic-hfp.png",
+        "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "size": 220
+      }],
+      "source_linkage_confidence": "exact",
+      "workflow": {
+        "manual_action_count": 9,
+        "operator_touch_seconds": 360,
+        "status": "completed",
+        "wall_clock_seconds": 840
+      }
+    }
+  ],
+  "generated_at": "2026-08-04T00:00:00+00:00",
+  "schema_version": "cta-pilot-prep-003/case-matrix-v1"
+}
