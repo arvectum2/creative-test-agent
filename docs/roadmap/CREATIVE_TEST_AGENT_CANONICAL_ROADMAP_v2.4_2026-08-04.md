@@ -127,7 +127,7 @@ Pilot boundary: 15–20 clean real cases; system output замораживает
 | W03 | CTA-PILOT-PREP-001 | Controlled Pilot Intake Orchestration | `DONE` | GITHUB | Case register, immutable provenance, decisions, DQ summary/export и scoped UI/API. |
 | W04 | CTA-PILOT-PREP-002 | Frozen Blind Run Infrastructure | `DONE` | GITHUB | Immutable revisions, hashes/versions, outcome separation, replay protection и deterministic export. |
 | W05 | CTA-PILOT-PREP-003 | Synthetic Controlled Pilot Rehearsal | `PLANNED` | HYBRID | Полная репетиция intake → blind run → review/adjudication → dashboard → summary. |
-| W06 | CTA-RELEASE-PREP-001 | On-Premise Release Skeleton | `PLANNED` | GITHUB + HYBRID | Release manifest, SBOM, templates, rollback и install verification. |
+| W06 | CTA-RELEASE-PREP-001 | On-Premise Release Skeleton | `DONE` | GITHUB + HYBRID | Release manifest, SBOM, templates, rollback и install verification. |
 | W07 | CTA-CLIENT-001 | Controlled Pilot Launch Pack | `PLANNED` | GITHUB | Kickoff, RACI, handoff, reviewer guide, sign-off и escalation matrix. |
 
 ### W03 — CTA-PILOT-PREP-001 acceptance
@@ -165,11 +165,14 @@ Pilot boundary: 15–20 clean real cases; system output замораживает
 
 ### W06 — CTA-RELEASE-PREP-001 acceptance
 
+Завершено PR #93 / main `41cd44a389cee96639fc713363a57938260932dc`:
+
 - versioned release manifest и SBOM/dependency export;
 - frozen model profile reference и integrity hashes без model weights;
 - fail-closed env/config templates;
 - clean-machine synthetic install verification;
 - rollback, backup/restore и upgrade instructions;
+- Mac mini/OpenCode локальный acceptance: deterministic build, clean install, frozen VLM/LLM runtime, E2E + restart persistence, degraded fail-closed path, shutdown без residual processes — PASS (commit `9352b0fb6cc04312c70ce58c3f3e811804597452`);
 - actual client installation остаётся `CTA-DEPLOY-001`.
 
 ### W07 — CTA-CLIENT-001 acceptance
