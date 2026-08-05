@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "release_id": "CTA-RELEASE-PREP-001",
+  "app_version": "0.1.0-rc1",
+  "bundle_name": "creative-test-agent-onprem-0.1.0-rc1",
+  "source_date_epoch": 315532800,
+  "environment_template": ".env.onprem.example",
+  "required_secret_placeholders": [
+    "CTA_SECRET_KEY",
+    "CTA_BOOTSTRAP_ADMIN_PASSWORD"
+  ],
+  "required_env": {
+    "CTA_LOCAL_ONLY_MODE": "true",
+    "CTA_ALLOW_CLOUD_LLM": "false",
+    "CTA_ENABLE_AUTH": "true",
+    "CTA_SECURITY_FAIL_CLOSED": "true",
+    "CTA_SECURITY_HEADERS_ENABLED": "true",
+    "CTA_HOST": "127.0.0.1"
+  },
+  "required_files": [
+    "README.md",
+    ".env.onprem.example",
+    ".env.server.example",
+    "Dockerfile",
+    "docker-compose.server.yml",
+    "Makefile",
+    "pyproject.toml",
+    "alembic.ini"
+  ],
+  "required_directories": [
+    "src",
+    "scripts",
+    "migrations",
+    "config"
+  ],
+  "operational_docs": [
+    "docs/releases/0.1.0-rc1.md",
+    "docs/releases/CTA-RELEASE-PREP-001_ONPREM_RUNBOOK_RU.md",
+    "docs/deployment/server_deployment_guide_ru.md",
+    "docs/deployment/docker_server_profile.md",
+    "docs/deployment/backup_restore_ru.md",
+    "docs/deployment/maintenance_ru.md",
+    "docs/deployment/env_reference.md",
+    "docs/deployment/docker_setup.md"
+  ],
+  "frozen_model_profile": {
+    "path": "config/model_profiles/production/cta_model_001.mac_mini_m4pro_24gb.frozen.json",
+    "expected_file_sha256": "6d7781ab249219dd8bbd93abd71dd96aac7fa094eb84f02aa1e861b8cfce6a1a",
+    "expected_internal_profile_sha256": "7796913472bb9de1f789c7a7ebaa0a0fab096c48f46e32580c107aab473c9698",
+    "runtime_requirement_files": [
+      "config/model_profiles/runtime/cta_model_001.llm.requirements.txt"
+    ]
+  }
+}

@@ -10,12 +10,14 @@ data/backups/
 data/generated/
 data/rehearsals/
 data/release/smoke_*
+data/release/cta-release-prep-001/
 data/release/*.zip
 data/*.db
 !data/demo/
 data/server_readiness_check*
 .venv/
 venv/
+.venv-release/
 *.egg-info/
 dist/
 build/

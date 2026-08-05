@@ -1,7 +1,7 @@
 PYTHON = .venv/bin/python
 UVICORN = .venv/bin/uvicorn
 
-.PHONY: test code-health ci-check run seed-demo reset-demo export-pilot check-closed-loop check-demo pilot-check load-demo-profile build-client-pack client-pilot-check check-server docker-build docker-up docker-down docker-logs bootstrap-admin server-build server-up server-down server-logs server-shell server-check server-bootstrap-admin server-backup server-restore migrations-check migrations-upgrade register-prompts eval-stub eval-local check-local-model release-manifest release-check release-bundle verify-release-install pilot-smoke operator-recovery-rehearsal pilot-calibration-package
+.PHONY: test code-health ci-check run seed-demo reset-demo export-pilot check-closed-loop check-demo pilot-check load-demo-profile build-client-pack client-pilot-check check-server docker-build docker-up docker-down docker-logs bootstrap-admin server-build server-up server-down server-logs server-shell server-check server-bootstrap-admin server-backup server-restore migrations-check migrations-upgrade register-prompts eval-stub eval-local check-local-model release-manifest release-check release-bundle verify-release-install release-prep-build release-prep-validate release-prep-clean-install pilot-smoke operator-recovery-rehearsal pilot-calibration-package
 
 test:
 	$(PYTHON) -m pytest tests/ -v
@@ -81,6 +81,15 @@ release-bundle:
 
 verify-release-install:
 	$(PYTHON) scripts/verify_release_install.py
+
+release-prep-build:
+	$(PYTHON) scripts/cta_release_prep_001.py --project-root . build --source-revision "$$(git rev-parse HEAD)"
+
+release-prep-validate:
+	$(PYTHON) scripts/cta_release_prep_001.py --project-root . validate --bundle data/release/cta-release-prep-001/creative-test-agent-onprem-0.1.0-rc1.zip
+
+release-prep-clean-install:
+	$(PYTHON) scripts/cta_release_prep_001_clean_install.py --bundle data/release/cta-release-prep-001/creative-test-agent-onprem-0.1.0-rc1.zip
 
 pilot-smoke:
 	$(PYTHON) scripts/run_pilot_smoke.py

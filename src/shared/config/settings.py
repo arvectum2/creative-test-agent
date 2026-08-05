@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     enable_brandbooks: bool = False
     enable_advanced_exports: bool = False
 
+    security_fail_closed: bool = True
+    security_headers_enabled: bool = True
+
     exports_root: str = "./data/exports"
 
     enable_review_auto_learning: bool = True
