@@ -37,6 +37,7 @@ def test_p8_06_dependency_is_exact_single_cap004_read_only_contract() -> None:
     dependency = dependencies[0]
     assert dependency["dependency_namespace"] == "platform-capability"
     assert dependency["dependency_id"] == "CAP-004"
+    assert dependency["dependency_scope"] == "platform"
     assert dependency["contract_version"] == "1.0.0"
     assert dependency["allowed_operations"] == ["p3.08.reconstruct-execution"]
     assert dependency["provisional"] is True
