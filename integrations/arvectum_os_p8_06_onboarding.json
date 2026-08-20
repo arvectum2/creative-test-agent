@@ -24,6 +24,7 @@
     {
       "dependency_namespace": "platform-capability",
       "dependency_id": "CAP-004",
+      "dependency_scope": "platform",
       "contract_version": "1.0.0",
       "allowed_operations": [
         "p3.08.reconstruct-execution"
