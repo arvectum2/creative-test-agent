@@ -1,0 +1,88 @@
+{
+  "declaration_format_owner": "arvectum/creative-test-agent",
+  "declaration_format_status": "product-local-provisional-p8.06-evidence",
+  "consumer": {
+    "kind": "extension",
+    "identity": {
+      "namespace": "extension",
+      "value": "creative-test-agent-audit-reconstruction",
+      "scope": "arvectum"
+    },
+    "version": "0.1.0",
+    "owner": "ООО «Арвектум»",
+    "repository": "arvectum/creative-test-agent",
+    "organization_id": "arvectum",
+    "purpose": "Optional read-only reconstruction of governed evidence for Creative Test Agent operations."
+  },
+  "product_contract_expectation": {
+    "canonical_owner": "arvectum/arvectum-os",
+    "lifecycle": "Provisional",
+    "contract_version": "0.1.0",
+    "version_identity": "creative-test-agent-audit-reconstruction-pc-v0.1.0"
+  },
+  "dependencies": [
+    {
+      "dependency_namespace": "platform-capability",
+      "dependency_id": "CAP-004",
+      "contract_version": "1.0.0",
+      "allowed_operations": [
+        "p3.08.reconstruct-execution"
+      ],
+      "provider_responsibility": "Resolve a read-only reconstruction only from governed evidence while preserving provenance, Organization scope, redaction and incompleteness semantics.",
+      "consumer_responsibility": "Supply exact governed references and current access context; treat the reconstruction as derived evidence view rather than new canonical authority.",
+      "failure_behavior": "Fail closed when exact dependency/version/operation compatibility or governed evidence is unavailable.",
+      "provisional": true
+    }
+  ],
+  "least_privilege": {
+    "required_rights": [
+      "read"
+    ],
+    "purpose": "creative-test-audit-reconstruction",
+    "allowed_classifications": [
+      "internal"
+    ],
+    "required_gates": [
+      "Authorization",
+      "DataGovernance"
+    ],
+    "organizational_authority_granted": false
+  },
+  "boundary": {
+    "mechanism": "declared-platform-contract",
+    "forbidden_reliance": [
+      "internal-table",
+      "internal-import",
+      "undocumented-endpoint",
+      "private-event-stream",
+      "implicit-shared-state"
+    ],
+    "shared_mutable_state": false,
+    "platform_private_module_imports": false,
+    "platform_internal_table_access": false,
+    "platform_private_stream_access": false,
+    "undocumented_endpoint_access": false
+  },
+  "product_owned_semantics": [
+    "creative input and asset schemas",
+    "audience simulation and scoring semantics",
+    "brand-safety and rubric configuration",
+    "creative-test workflows and approvals",
+    "reports, recommendations and product UX",
+    "model and prompt choices"
+  ],
+  "lifecycle": {
+    "enabled_by_default": false,
+    "onboard": "Resolve the exact Provisional Product Contract and exact governed CAP-004 provider evidence before any reliance.",
+    "disable": "Stop extension reliance without changing Creative Test Agent product state or Arvectum OS canonical state.",
+    "remove": "Remove the declaration/adapter reliance after disable; retain only governance/audit evidence required by applicable policy.",
+    "upgrade": "Create a new immutable declaration version and Product Contract version, then re-run exact governed dependency resolution; never infer compatibility or auto-fallback."
+  },
+  "authority_and_state": {
+    "canonical_mutation_allowed": false,
+    "authorization_granted_by_registration": false,
+    "organizational_authority_granted_by_registration": false,
+    "creates_platform_capability_lifecycle_transition": false,
+    "creates_stable_public_api_or_sdk": false
+  }
+}
