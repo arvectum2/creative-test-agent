@@ -1,0 +1,3 @@
+# Plan
+
+Pin exact source versions and all original content anchors, including tables and unmarked lines. Reuse existing IDs; reconcile historical versus active. Map each applicable original criterion to native task, test and exact evidence; preserve gaps, dependencies, blockers and decisions. Current v2.4; blocks A–D recorded complete, block E waits client data. Current next CTA-PILOT-PREP-003 hybrid synthetic rehearsal. No client data, actual pilot or launch admitted by this package. Close integration only after source conservation and applicable review. No production action or new authority.
