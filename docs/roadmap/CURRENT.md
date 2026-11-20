@@ -17,3 +17,8 @@ Current state:
 - this next task is HYBRID and requires a local Mac mini/OpenCode rehearsal after GitHub implementation.
 
 The previous roadmap versions and the unversioned status document are historical records and must not be used to determine current task priority.
+
+
+## Spec Kit — candidate linkage (2026-11-20)
+
+[Specification](../../specs/001-pilot-roadmap-traceability/spec.md) · [Plan](../../specs/001-pilot-roadmap-traceability/plan.md) · [Integration tasks](../../specs/001-pilot-roadmap-traceability/tasks.md). Existing native source authority, scope, status and approval boundaries remain unchanged.
